@@ -1,0 +1,4190 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <title>MKT101 SP26 - CHÍ VỸ PRO</title>
+    <style>
+        :root { --fpt-orange: #f26f21; --fpt-blue: #1b2d6b; --primary: #4255ff; --bg: #f4f7f9; --white: #ffffff; --text: #2e3856; --success: #28a745; --error: #dc3545; --gray-block: #f8f9fa; }
+        body { font-family: 'Segoe UI', Tahoma, sans-serif; background: var(--bg); display: flex; flex-direction: column; align-items: center; padding: 20px; color: var(--text); min-height: 100vh; margin: 0; }
+        
+        .main-title { font-size: 38px; font-weight: 800; background: linear-gradient(135deg, var(--fpt-orange) 0%, var(--fpt-blue) 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin: 20px 0; text-transform: uppercase; text-align: center; filter: drop-shadow(2px 3px 5px rgba(0,0,0,0.1)); }
+        
+        #mode-selector { margin-bottom: 25px; }
+        .btn { background: #e0e4ff; color: var(--primary); padding: 12px 24px; border: none; border-radius: 10px; cursor: pointer; font-weight: 600; margin: 5px; transition: 0.2s; font-size: 15px; }
+        .active-mode { background: var(--fpt-blue) !important; color: white !important; }
+        
+        #progress { font-weight: bold; color: #4a5568; margin-bottom: 15px; font-size: 17px; background: #fff; padding: 8px 20px; border-radius: 20px; display: inline-block; border: 1px solid #e2e8f0; }
+
+        /* Flashcard */
+        .flashcard-wrapper { width: 100%; max-width: 750px; min-height: 520px; perspective: 1000px; cursor: pointer; margin-bottom: 20px; }
+        .card { width: 100%; height: 100%; position: relative; transition: transform 0.6s; transform-style: preserve-3d; min-height: 520px; }
+        .card.flipped { transform: rotateY(180deg); }
+        .card-face { position: absolute; width: 100%; height: 100%; backface-visibility: hidden; display: flex; flex-direction: column; border-radius: 25px; box-shadow: 0 15px 35px rgba(0,0,0,0.1); padding: 40px; background: var(--white); box-sizing: border-box; }
+        .card-front { justify-content: flex-start; text-align: left; border-top: 10px solid var(--fpt-orange); overflow-y: auto; }
+        .card-back { transform: rotateY(180deg); background: var(--success); color: white; justify-content: center; align-items: center; text-align: center; border: 6px solid #fff; }
+
+        .q-text { font-size: 24px; font-weight: 700; color: var(--fpt-blue); margin-bottom: 30px; line-height: 1.4; text-align: left; width: 100%; }
+        .opt-item { background: var(--gray-block); padding: 16px 25px; margin: 10px 0; border-radius: 12px; font-size: 17px; color: #4a5568; border: 1px solid #edf2f7; width: 100%; box-sizing: border-box; text-align: left; }
+
+        /* Quiz */
+        .quiz-area { width: 100%; max-width: 750px; background: white; padding: 40px; border-radius: 25px; box-shadow: 0 15px 35px rgba(0,0,0,0.1); text-align: left; display: none; border-top: 10px solid var(--fpt-blue); box-sizing: border-box; }
+        .quiz-opt-btn { display: block; width: 100%; padding: 18px 25px; margin: 12px 0; border: 1px solid #edf2f7; border-radius: 15px; cursor: pointer; background: var(--gray-block); text-align: left; font-size: 17px; transition: 0.2s; color: var(--text); font-family: inherit; }
+        .correct { background: #d4edda !important; border-color: var(--success) !important; color: #155724; font-weight: 700; }
+        .wrong { background: #f8d7da !important; border-color: var(--error) !important; color: #721c24; }
+
+        .nav-controls { display: flex; justify-content: space-between; width: 100%; max-width: 750px; margin-top: 15px; gap: 15px; }
+        .btn-nav { flex: 1; padding: 15px; border-radius: 12px; font-size: 17px; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+    <h1 class="main-title">MKT101 SP26 By Chí Vỹ</h1>
+
+    <div id="mode-selector">
+        <button id="mode-flash" class="btn active-mode" onclick="setMode('flash')">Học Flashcard</button>
+        <button id="mode-quiz" class="btn" onclick="setMode('quiz')">Làm trắc nghiệm</button>
+    </div>
+
+    <div id="progress">Đang tải...</div>
+    
+    <div id="flash-area" class="flashcard-wrapper" onclick="flipCard()">
+        <div class="card" id="main-card">
+            <div class="card-face card-front">
+                <div id="flash-q" class="q-text"></div>
+                <div id="flash-opts-list" style="width:100%"></div>
+                <div style="margin-top:auto; color:#bbb; font-style:italic; font-size:13px; text-align:center; width:100%">(Click để xem đáp án đúng)</div>
+            </div>
+            <div class="card-face card-back">
+                <p style="font-size: 20px; opacity: 0.9; margin-bottom: 15px;">ĐÁP ÁN ĐÚNG:</p>
+                <p id="flash-a" style="font-size: 30px; font-weight: 800; line-height: 1.3;"></p>
+            </div>
+        </div>
+    </div>
+
+    <div id="quiz-area" class="quiz-area">
+        <div id="quiz-q" class="q-text"></div>
+        <div id="quiz-opts-box"></div>
+    </div>
+
+    <div class="nav-controls">
+        <button class="btn btn-nav" style="background: #e2e8f0; color: #4a5568;" onclick="move(-1)">Quay lại</button>
+        <button class="btn btn-nav" style="background: var(--fpt-orange); color: white;" onclick="shuffleData()">Trộn câu</button>
+        <button class="btn btn-nav" style="background: var(--fpt-blue); color: white;" onclick="move(1)">Tiếp theo</button>
+    </div>
+
+    <script>
+        /* ============================================================
+           DÁN TOÀN BỘ CÂU HỎI CỦA BẠN VÀO GIỮA HAI DẤU HUYỀN (`) DƯỚI ĐÂY
+           ============================================================ */
+        const rawData = `
+Which of the following marketing management orientations forcuses primarily on improving efficiencies along the supply chain? (THỦY TIÊN)
+A. production concept
+B. product concept
+C. selling concept
+D. marketing concept
+E. social marketing concept
+A
+The goal of _____ is to make an advertisement so useful or entertaining that people want to watch it.
+A. branded entertainment
+B. advertainment
+C. audience engagement
+D. continuity scheduling
+E. pulse scheduling
+B
+Which of the following is NOT an example of a specialized and highly targeted media that an advertiser might use to reach smaller customer segments?
+A. cable television channels
+B. e-mail
+C. cell phone content
+D. network television
+E. online social networks
+D
+Costs that vary directly with the level of production are referred to as
+A. fixed costs
+B. variable costs
+C. target costs
+D. total costs
+E. unit costs
+B
+Assume that you are a manager at a firm that has hired lobbyists to influence legislation affecting your firm's industry to its advantage. Your firm takes a(n) _____ approach to the marketing environment.
+
+A. reactive
+B. proactive
+C. adversarial
+D. passive
+E. team work
+B
+A society's _______ are expressed in how people view themselves, organizations, society, nature, and the universe.
+A. social codes
+B. culture values
+C. demographics
+D. public policies
+E. economics
+B
+Which of the following questions would provide management with the LEAST beneficial information regarding the performance of its sales force?
+A. Is the sales force meeting its profit objectives?
+B. Is the sales force working well with the marketing team?
+C. Are sales force costs in line with sales force outcomes?
+D. Is the sales force accomplishing its customer relationship objectives?
+E. Does the sales force complete its sales reports and expense reports in a timely manner?
+E
+A product that consumers compare carefully on such attributes as suitability, quality, price, and style is called a:
+A. Unsought Product
+B. Specialty Product
+C. Shopping Product
+D. Convenience Product
+C
+Apple recently ran ads featuring real people who play the characters named "Mac" and "PC". This is an example of what type of execution style?
+A. personality symbol
+B. testimonial evidence
+C. scientific evidence
+D. lifestyle
+E. fantasy
+A
+Price competition is minimized when all firms in an industry use which pricing method?
+A. variable pricing
+B. markup pricing
+C. elasticity pricing
+D. value-added pricing
+E. value-based pricing
+B
+_____ involves two-way, personal communication between salespeople and individual customers, either in person, by telephone, or through Web conferences.
+A. Advertising
+B. Public relations
+C. Personal selling
+D. Telemarketing
+E. Integrated marketing communication
+C
+The product concept says that a company should do which of the following?
+A. improve marketing of its best products
+B. market only those products with high customer appeal
+C. focus on the target market and make products that meet those customers' demands
+D. focus on making continuous product improvements
+E. make promoting products the top priority
+D
+Gillette is selling a set of shave and replacement razor at a combination price. This
+
+A. By-product pricing
+B. Captive-product pricing
+C. Product bundle pricing
+D. Optional product pricing
+C
+If you are merely attempting to create consumer awareness toward your product, you will use _____ ads.
+A. informative
+B. persuasive
+C. reminder
+D. developmental
+E. cooperative
+A
+Which of the following functions is LEAST likely to be performed by a public relations department?
+A. product publicity
+B. sales lead development
+C. public affairs
+D. investor relations
+E. media vehicle selection
+E
+Which of the following is a primary data collection method?
+A. Literature review
+B. Internet search
+C. Surveys
+D. Internal reports
+C
+_______is the amount of money charged for a product or service. It is the sum of all the values that consumers give up in order to gain the benefits of having or using a product or service.
+A. Cost
+B. Profit
+C. Price
+D. Promotion
+C
+Which of the following is NOT a typical supply chain member?
+A. resellers
+B. customers
+C. intermediaries
+D. government agencies
+E. raw materials supplier
+D
+If a large retailer sold numerous nun items below cost with the intention of punishing small competitors and gaining higher long-run profits by putting those competitors out of business, the retailer would be guilty of ________
+A. Price-fixing
+B. Price collusion
+C. Predatory pricing
+D. Discriminatory pricing
+C
+Marketers using humor in their messages claim that they attract more attention and create mor loyalty belief in the brand. This type of message is called a(n) _______ appeal.
+A. Rational
+B. Structural
+C. Emotional
+D. Moral
+E. Standard
+C
+Which product level transforms the core benefit into an actual product?
+A. Potential Product
+B. Augmented Product
+C. Actual Product
+D. Core Benefit
+C
+Elisandra, a marketing manager at a regional chain restaurant, has decided to sponsor a contest calling for customers to create commercials for the restaurant. Winning entries will be posted on the organization's home page. Elisandra's plan is an example of _________
+A. consumer-generated marketing
+B. partner relationship management
+C. customer lifetime value
+D. community development around a brand
+E. customer divestment
+A
+All of the following are demographic criteria used to segment consumer markets except:
+A. Age
+B. Income
+C. Sex
+D. Lifestyle
+D
+Which of the following is information gathered directly from respondents in order to specifically address a question at hand?
+A. competitive marketing intelligence
+B. experimental hypotheses
+C. primary data
+D. secondary data
+E. internal data
+C
+Delia's is a clothing retailer that targets teenage girls. It runs coordinated promotions for its catalog, Web site, and retail outlets. It uses the same models in its catalog and in its print ads as well as on its Web site. Delia's works to make sure its public relations activities as well as its sales promotions harmonize with its advertising in all venues. From this information, you can infer that Delia's is using _____
+A. buzz marketing
+B. experiential marketing
+C. integrated marketing communication
+D. word-of-mouth marketing
+E. database marketing
+C
+Which type of distribution is used when the producer wants more than one, but fewer than all, of the intermediaries who are willing to carry its products?
+A. exclusive
+B. selective
+C. intensive
+D. administered
+E. corporate
+B
+An insert in a Land's End catalog offers free shipping on your next purchase. This in an example of a _____
+A. sales promotion
+B. POP promotion
+C. trade promotion
+D. price pack
+E. premium
+A
+When Procter & Gamble (P&G) developed the Mr. Clean Magic Eraser, the company needed to explain how the product cleans grime form walls without removing paint. What type of campaign was most likely used by P&G for the Mr. Clean Magic Eraser?
+A. informative advertising
+B. persuasive advertising
+C. reminder advertising
+D. developmental advertising
+E. comparative advertising
+A
+There are many potential segmentation variables, but these variables can be grouped into three basic categories. The categories include all of the following EXCEPT:
+A. Why do customers make the decisions they do?
+B. What have the customers done?
+C. Who are the customers?
+D. When do customers buy?
+D
+Critically assess the role of ethical considerations in marketing research.
+A. Ethical considerations are irrelevant in marketing research.
+B. They ensure the privacy and rights of participants are protected.
+C. They only apply to primary data collection methods.
+D. They limit the scope of research and data collection.
+B
+Companies should state their channel objectives in terms of targeted levels of
+A. co-op advertising
+B. efficiency
+C. customer service
+D. conflict reduction
+E. profitability
+C
+A startup aims to launch a daily backpack with superior design. What should be the product designer's initial action?
+A. Making prototype
+B. Brainstorming
+C. Observeing customers, shaping their product-use experience
+D. Create branding tool kit
+C
+Several restaurants are selling different price for domestic or local customers and international customers, this is an example of....
+A. International pricing
+B. Segmented pricing
+C. Dynamic pricing
+D. Psychological pricing
+B
+Amazon.com leverages relationships with its 35 million customers by offering them music, videos, gifts, toys, consumer electronics, and office products, among other items. Based on previous purchase history, the company recommends related CDs, books, videos, or other products that might interest a customer. This most directly helps Amazon.com capture a greater ________
+A. partner value
+B. share of customer
+C. profit margin
+D. social network
+E. customer loyalty
+B
+Which statement is true?
+A. The relationship between the price charged and the resulting demand level can be shown as the demand curve
+B. The relationship between the price charged and the resulting demand level can be shown as the break-even pricing curve
+C. The relationship between the price charged and the resulting demand level can be shown as the stock analysis curve
+D. None of above
+A
+A salesperson who researches a company's buying styles and product line is most likely in the _______ stage of the selling process.
+A. prospecting
+B. preapproach
+C. approach
+D. presentation
+E. closing
+B
+Which of the following is NOT a way that a company can differentiate its market offering?
+A. Product differentiation
+B. Services differentiation
+C. Channel differentiation
+D. Price differentiation
+D
+The AIDA model identifies the characteristics of an effective ___________
+A. advertising budget
+B. channel of communication
+C. marketing message
+D. marketing mix
+E. marketing response
+C
+Which positioning strategy do market leaders usually choose?
+A. Disposition or reposition competitors
+B. Consolidate their position in the minds of customers
+C. Exclusive club
+D. Find a position in the minds of customers
+B
+The objective of _________ research is to gather preliminary information that will help define the problem and suggest hypotheses.
+A. exploratory
+B. descriptive
+C. causal
+D. primary
+E. secondary
+A
+Market-skimming pricing would likely be most effective in selling ________
+A. any convenience item
+B. an electronic device for which research and development must be recouped
+C. shampoo and bath soap
+D. anything easily copied by competitors
+E. most items at EDLP retailers such as Walmart
+B
+Vinamilk, a leading dairy company in Vietnam, offers various types of milk products like fresh milk, condensed milk, powdered milk, and flavored milk under its brand. The number of these different types of milk products represents Vinamilk's:
+A. Product mix width
+B. Product mix length
+C. Product line depth
+D. Product mix consistency
+C
+The target market of a business is a market consisting of:
+A. All customers with the ability to pay
+B. All customers with a need for the product
+C. All customers with a desire to buy the product
+D. A set of attractive market segments that are suitable for the business's ability
+D
+Which type of sales approach is best for today's customers who expect answers, results, and useful products?
+A. hard-sell
+B. customer-solution
+C. razzle-dazzle
+D. sales development
+E. personal relationship
+B
+Which of the following best defines marketing?
+A. The process of selling products and services
+B. Creating customer value and engagement
+C. Advertising and promotions
+D. Market research and development
+B
+When a company charges the same rate to ship a product anywhere in the United States, it is using which form of geographic pricing?
+
+A. FOB delivered
+
+B. FOB factory
+
+C. FOB origin
+
+D. uniform-delivered
+
+E. basing-point
+D
+Which of the following is the best definition of a product?
+A. A tangible item that satisfies a need or want.
+B. Anything that can be offered to a market for attention, acquisition, use, or consumption that satisfies a want or need.
+C. A service provided by a company to its customers.
+D. A physical good produced by a manufacturing process.
+B
+The rapid growth of sales promotions in consumer markets is most likely the result of all of the following factors EXCEPT ________
+A. consumers and large retailers becoming more deal oriented
+B. product managers facing pressure to increase current sales
+C. competing brands attempting to differentiate from each other
+D. declining advertising costs
+E. advertising efficiency on the decline because of media clutter
+D
+A marketer is making decisions about the headline, copy, illustration, and colors for a print ad. The marketer is making decisions about the _______
+A. message structure
+B. message content
+C. message medium
+D. message channel
+E. message format
+E
+Due in a large part to advances in technology, ________ is a major trend whereby product and service producers are bypassing intermediaries and going directly to final buyers, or radically new types of channel intermediaries are emerging to displace traditional ones. (Soạn bởi Tiên nhoa)
+a. the vertical marketing system
+b. the corporate marketing system
+c. disintermediation
+d. the corporate merger
+e. the hostile takeover
+C
+In business buying behavior, what does the term "derived demand" refer to.
+A. Demand that fluctuates with the business cycle
+B. Demand for business products stemming from demand for consumer
+products
+C. Demand created by aggressive marketing tactics
+D. Demand for luxury business goods
+B
+Integrated marketing communications produces better communications ________ and greater ________ impact.
+
+a. consistency; sales
+b. sales; consistency
+c. marketing; competitive
+d. variety; production
+e. branding; quality
+a
+Which of the following is the most important part of positioning?
+A. Product Type Positioning
+B. Product Feature Positioning
+C. Product Service Positioning
+D. Product Personnel Positioning
+B
+Using product bundle pricing, sellers combine several products and offer the bundle ________.
+a. as a functional unit
+b. at a reduced price
+c. as a complete self-service package
+d. as a reward to loyal customers
+e. at a premium price
+B
+Industrial products are purchased by individuals and organizations for further processing or for use in conducting a business. Which of the following is NOT an example of an industrial product?
+A. Consumer Goods
+B. Raw Materials
+C. Capital Items
+D. Supplies and Services
+A
+HP's advertising agency assembles words and illustrations into an advertisement that will convey the company's intended brand message. In the communication process, HP is ________.
+a. Messaging
+b. Encoding
+c. Sending
+d. Decoding
+e. Responding
+B
+A(n) ________ is defined as any group that has an actual or potential interest in, or impact on, an organization's ability to achieve its objectives.
+
+A. team
+B. competitor
+C. market
+D. public
+E. intermediary
+D
+Analyze the advantages of using secondary data in marketing research.
+A. It is always more accurate than primary data.
+B. It is less expensive and quicker to obtain than primary data.
+C. It always provides the most current information.
+D. It is tailored to the specific research needs of the company.
+B
+Which product classification is typically purchased frequently, immediately, and with minimal buying effort?
+
+A. Unsought Product
+B. Convenience Product
+C. Shopping Product
+D. Specialty Product
+B
+Change in the ________ environment is most likely to reflect changes in education levels and diversity trends.
+A. demographic
+B. natural
+C. economic
+D. cultural
+E. political
+A
+Which of the following marketing management concepts is most likely to lead to marketing myopia?
+
+A. customer-driven marketing
+B. customer-driving marketing
+C. societal marketing
+D. marketing
+E. product
+E
+Because your company takes an environmental management perspective, they hire ________ to influence legislation affecting their industries to their advantage.
+A. mediators
+B. green marketers
+C. lobbyists
+D. negotiators
+E. politicians
+C
+A salesperson should seek out, clarify, and overcome any customer objections during the sales presentation in order to ________.
+
+A. offer the buyer a discount for placing an order
+B. minimize the buyer's concerns about the product
+C. compliment the buyer for mentioning the objections
+D. turn the objections into reasons for buying
+E. turn the objections into an opportunity for humor
+D
+Analyze how economic factors can impact a company's marketing strategy.
+
+A. Economic factors always have a positive impact.
+B. Companies need to adjust pricing and promotional strategies based on economic conditions.
+C. Economic factors are irrelevant to marketing decisions.
+D. Only small businesses are affected by economic factors.
+B
+Critically assess how a major shift in technological forces could impact a company's competitive position.Soạn bởi Tiên nhoa)
+A. It will have no impact on the company's competitive position.
+B. It could provide opportunities for innovation and new product development, enhancing competitive position. 
+C. It will always negatively impact the company's competitive position.
+D. Technological shifts only affect manufacturing processes.
+B
+Which of the following represents the most significant risk to companies using a mass-marketing approach?
+
+A. They may not realize economies of scale.
+B. They may overemphasize the benefits of customized products.
+C. They may lose customers to niche marketers.
+D. They may lose customers who feel that mass marketers are invading their privacy.
+C
+Which form of data below can usually be obtained more quickly and at a lower cost than the others?
+
+A. primary
+B. survey research
+C. experimental research
+D. secondary
+E. observational research
+D
+IAMS Pet Food runs a commercial on the Animal Planet cable channel during an episode of The Dog Whisperer. The advertising agency for IAMS is taking advantage of which of the following?
+a. prime time
+b. broadcasting
+c. narrowcasting
+d. media multitasking
+e. frequency and reach
+C
+An e-mail from Amazon.com offers free shipping on your next purchase of more than $35. This is an example of __________.
+
+A. sales promotion
+B. personal selling
+C. public relations
+D. an advertising objective
+E. a push strategy
+A
+Cell phones are one type of ________.
+a. digital media
+b. consumer-generated media
+c. outdoor media
+d. indirect media
+e. traditional media
+A
+What type of pricing is being used when a company temporarily prices its product below the list price or even below cost to create buying excitement and urgency?
+
+A. segmented pricing
+B. psychological pricing
+C. referent pricing
+D. promotional pricing
+E. basing-point pricing
+D
+The societal marketing concept seeks to establish a balance between consumer short-run wants and consumer __________.
+A. short-run costs and profits
+B. short-run ethics
+C. long-run welfare
+D. immediate health
+E. value propositions
+C
+Products that consumers either do not know about or know about but do not normally consider buying are
+called:
+A. Unsought Product
+B. Specialty Product
+C. Shopping Product
+D. Convenience Product
+A
+Which of the following is an example of a consumer product?
+
+A. A raw material used in the production of another product.
+
+B. A computer purchased by a company for its employees-
+
+C. A car purchased by a family for personal use.
+
+D. A piece of industrial equipment used in a manufacturing process.
+C
+A toothpaste manufacturer believes its most likely customers are parents of young children who value a brand with a kid-friendly taste and texture. The company's segmentation is probably based on:
+
+A. psychographics
+
+B. a combination of demographics and psychographics
+
+C. behavioral characteristics
+
+D. a combination of demographics and benefits sought
+D
+When a company uses data from existing market research reports, it is using:
+
+A. Primary data
+B. Secondary data
+C. Qualitative data
+D. Experimental data
+B
+A marketing information system (MIS) consists of people and procedures to assess information needs, ________, and help decision makers analyze and use the information.
+a. experiment to develop information
+b. test market the information
+c. develop the needed information
+d. critique the needed information
+e. question the needed information
+c
+offers the right combination of quality and good service at a fair price
+A. Cost-base pricing
+B. Good-value pricing
+C. Value-added pricing
+D. High low pricing
+B
+If a business does not focus on market segmentation in its marketing strategy, it is called:
+A. Mass Marketing
+
+B. Product Marketing
+
+C. Target Marketing
+
+D. All of the above sentences are wrong
+A
+Ethnographic research .............
+
+A. comes from traditional focus groups
+
+B. is gathered where people live and work
+
+C. provides secondary data
+
+D. is most popular in the service sector
+
+E. provides data to marketers when observation is impossible
+B
+What type of positioning is it to meet the product features and benefits of the target customers?
+A. Based on Product Features
+
+B. Through Custc ner Images
+
+C. According to Competitors
+
+D. According to Quality/Price
+A
+Which of the following is NOT a major category in a company's promotion mix?
+A. sales promotion
+
+B. strategic positioning
+
+C. direct marketing
+
+D. public relations
+
+E. Advertising
+B
+A business that implements a single marketing mix for the entire market is a strategy of:
+A. Differentiated Marketing
+B. Undifferentiated Marketing
+C. Concentrated Marketing
+D. Mixed Marketing
+B
+News conferences, press tours, and grand openings are examples of.......... , a type of tool commonly used by public relations professionals.
+
+A. public service activities
+
+B. special events
+
+C. social networking
+
+D. development
+
+E. investor relations
+B
+When Taco Bell used a Chihuahua, 3 small dog, to represent its product, which type of execution style is being used?
+A. moodorimage
+B. fantasy
+C. personality symbol
+D. technical expertise
+E. musical
+C
+Manufacturers may offer a(n)......... in retum for the retailer's agreement to feature the manufacturer's products in advertising or display.
+
+A. POP promotion
+
+B. allowance
+
+C. incentive promotion
+
+D. price pack
+
+E. premium
+B
+The distinction between a consumer product and an industrial product is primarily based on:
+A. The physical characteristics of the product
+
+B. The price of the product
+
+C. The purpose for which the product is purchased
+
+D. The distribution channels used to sell the product
+C
+Advertising has some shortcomings. What is NOT one of them?
+A. It is impersonal.
+
+B. It can be very costly.
+
+C. It slowly reaches many people.
+
+D. It carries on one-way communication with the audience.
+
+E. It does not make audience members feel the need to respond.
+C
+Developing an effective message strategy begins with identifying......... that can be used as advertising appeals.
+
+A. consumer trends
+
+B. competitors' weaknesses
+
+C. competitors' strengths
+
+D. customer benefits
+
+E. consumer emotions
+D
+Companies are increasingly moving away from high commission compensation plans because such plans often lead to salespeople .
+A. undermining the work of the inside sales team
+B. ignoring management and marketing objectives
+C. being too pushy and harming customer relationships
+D. working multiple sales jobs to maximize their income
+E. spending too much time traveling between customers
+C
+Happy Pet is a large petfood company that sells its products to retail pet supply stores as well as wholesalers.
+The sales force at Happy Pet is LEAST likely to do which of the following?
+A. work directly with final customers
+B. build relationships with wholesalers
+C. help retailers effectively sell the company's products
+D. communicate regularly with business customers
+E. represent wholesalers and retailers to the company
+A
+Apple lnc. is going to organize product launch event for iPhone 16 on September 2024. Which stage of new product development for iPhone 16 in this event
+
+A. Business analysis
+
+B. Test market
+
+C. Commercialization
+
+D. Product concept development
+C
+Choosing some suitable market segments to target is called:
+A. Market specialization
+B. Selective specialization
+C. Specialization by product
+D. Focus on one market segment to sell one type of product
+B
+Highlands Coffee, a popular coffee chain in Vietnam, expanded its menu to include a variety of food items like sandwiches and pastries, in addition to its core coffee offerings. This strategy can be best described as:
+
+A. Product line stretching
+B. Product line filling
+C. Brand extension
+D. Co-branding
+C ( chị mới fix)
+FOB-origin pricing is a type of...
+A. Dynamic pricing
+B. Zone pricing
+C. International pricing
+D. Geographical pricing
+D
+Vietjet Air, a Vietnamese low-cost airline, focuses on offering affordable fares and a no-frills flying experience. The airline's emphasis on cost efficiency and streamlined processes reflects its focus on managing:
+A. Service differentiation
+B. Service quality
+C. Service productivity
+D. Brand equity
+C
+Firms CANNOT create:
+
+A. consumer segments
+B. segmentation strategies
+C. consumer targets
+D. positioning strategies
+A
+Which of the following best describes the practice of value selling?
+A. earning business from customers based on low prices
+B. delivering superior customer value and capturing a fair return on that value
+C. closing deals quickly to meet team sales quotas
+D. gaining short-term sales that increase annual sales volume
+E. challenging customers to find better deals for products and services
+B
+________ involves attaching features and services to differentiate a company's offers and to support charging higher prices.
+A. Break-even pricing
+B. Target pricing
+C. Value-added pricing
+D. Cost-plus pricing
+E. Pricing-down
+C
+The product level that offers additional consumer services and benefits is:
+A. Potential Product
+B. Augmented Product
+C. Actual Product
+D. Core Benefit
+B
+In general, marketers must weigh carefully the costs of additional information against the ________ resulting from it.
+A. organization
+B. benefits
+C. creativity
+D. ethical issues
+E. costs
+B
+A radio station that carries news, features, and editorial opinions about your area is which type of public?
+A. financial
+B. media
+C. citizen-action
+D. general
+E. government
+B
+When marketers set low expectations for a market offering, the biggest risk they run is _________.
+
+A. disappointing loyal customers
+B. decreasing customer satisfaction
+C. failing to attract enough customers
+D. failing to understand their customers' needs
+E. incorrectly identifying a target market
+C
+Customer-perceived value is determined by a customer's __________ of the benefits and costs of a market offering relative to those of competing offers.
+
+A. personal assessment
+B. rational expectations
+C. accurate assessment
+D. objective evaluation
+E. emotional understanding
+A
+You are an assistant marketing director for a firm in a market with many low-margin customers. What type of relationship would be most profitable for you to develop with these customers?
+
+A. full partnerships
+
+B. basic relationships
+
+C. basic partnerships
+
+D. club programs
+
+E. selective relationships
+B
+All of the following are types of price-adjustment strategies EXCEPT________________
+A. Segmented pricing
+B. Promotional pricing
+C. Dynamic pricing
+D. Break-even pricing
+D
+Which of the following strategies are NOT suitable strategies in the decline stage?
+
+A. Maintain the product
+B. Harvest the product
+C. Drop the product
+D. Advertising for the product
+D
+All of the following are characteristics to be effective for segmented pricing strategy EXCEPT ________________
+A. Segments must show different degrees of demand
+B. Must be legal
+C. Watching the market cannot exceed the extra revenue obtained from the price difference
+D. High income segment accepted
+D
+All of the following are problems associated with the poor selection of salespeople EXCEPT ________.
+
+A. Lower sales
+B. Costly turnover
+C. Less productivity
+D. Less office support
+E. Disrupted customer relationships
+D
+All of the following are types of promotional pricing EXCEPT_____________
+A. Loss leaders
+B. Special event pricing
+C. Credit card payment accepted
+D. Return back free
+C
+Vietnam Airlines' passenger transport product positioning is based on:
+
+A. Price
+B. Level of service provided to customers
+C. A & B are correct answers
+D. None of these
+C
+Rockwell Collins is a manufacturer of avionics and communications systems for corporate aircraft. In response to a general slowdown in the business aviation industry, Rockwell announced cutbacks for the items it makes for small and midsize jets. Based on this information, which of the following segmentation variables is Rockwell most likely to utilize?
+A. Geographic
+B. Firmographic
+C. Buying approach
+D. Psychographic
+B
+Which of the following is NOT a requirement for effective market segmentation?
+A. Measurable
+B. Accessible
+C. Innovative
+D. Actionable
+C
+Which of the following is NOT a characteristic of a service?
+
+A. Intangibility
+B. Inseparability
+C. Variability
+D. Tangibility
+D
+The Vietnamese government launched a campaign called "Live Fully in Vietnam" (Sống trọn vẹn ở Việt Nam) to promote the country's tourism and culture. This is an example of:
+A. Person marketing
+B. Organization marketing
+C. Place marketing
+D. Social marketing
+C
+A example of a(n) ___________ is a five-foot-high cardboard display of Andy an Lily next to Comfort fabric conditioner bottle.
+A. sample
+B. POP promotion
+C. POP pack
+D. advertising specialty
+E. premium
+B
+All of the following are considered advantages of a territorial sales force structure EXCEPT ______________
+A. travel expenses can be minimized
+B. each salesperson's job is clearly defined
+C. accountability is clearly defined for each salesperson
+D. salespeople develop in-depth knowledge of a product line
+E. salespeople have the opportunity and incentive to build strong relationships with customers
+D
+All of the following are basic types of compensation plan for salespeople EXCEPT _________
+A. straight commission
+B. straight salary
+C. salary plus commission
+D. commission plus bonus
+E. salary plus bonus
+D ( Các loại hình cơ bản của kế hoạch lương thưởng cho nhân viên bán hàng bao gồm:
+Straight salary 
+Straight commission 
+Salary plus commission 
+Salary plus bonus )
+Salespeople should be trained to recognize __________ signals from the buyer, which can include physical actions such as leaning forward and nodding or asking questions about prices and credit terms.
+A. qualifying
+B. approach
+C. objection
+D. closing
+E. follow-up
+D
+Some advertisers use edgy humor in their advertisements in order to break through the commercial clutter.
+This is an example of an advertisement's ___________
+A. format
+B. execution style
+C. tone
+D. image
+E. message strategy
+C
+All of the following are strategies a marketer would use to lead consumers into making the final step toward a purchase EXCEPT which one?
+A. offer special promotional prices
+B. offer add-on features
+C. offer premiums
+D. use extensive "teaser" advertising
+E. offer rebates
+D
+Which of the following is NOT a factor in the changes occurring in today's marketing communications?
+A. Mass markets have fragmented, and marketers are shifting away from mass marketing.
+B. Improvements in communication technologies are changing how companies and customers communicate with each other.
+C. Companies routinely invest millions of dollars in the mass media.
+D. Mass media no longer capture the majority of promotional budgets.
+E. Today's consumers are better informed about products and services.
+C
+_________conflict, which occurs between different levels of the same channel, is more common than ___________conflict, which occurs among firms at the same level of the channel.
+A. Horizontal; vertical
+B. Vertical; horizontal
+C. Contractual; corporate
+D. Corporate; franchise
+E. Wholesaler; retailer
+B
+Durango China Company charges all customers within different identified geographical areas a single total price. The more distant the area, the higher the price. This is____________
+A. freight-absorption pricing
+B. zone pricing
+C. uniform-delivered pricing
+D. FOB-origin pricing
+E. bulk rate pricing
+B
+Companies usually develop rather than
+A. single products; product families
+B. product lines; single products
+C. product families; product lines
+D. product brands; product images
+E. product images; product brands
+B
+Value-based pricing is based on the customer's perception of:
+A. The Product's Quality
+B. The Product's Cost
+C. The Competitor's Price
+D. The Product's Value
+D
+Which of the following is the best example of a specialty product?
+
+A. A can of Coca Cola
+B. A pair of Lei's jeans
+C. A Rolex watch
+D. A 4K OLED TV
+C
+Which of the following is a stage in the buyer decision process?
+A. Need recognition
+B. Market segmentation
+C. Product positioning
+D. Brand equity
+A
+How do environmental factors such as economic conditions influence business buyer behavior?
+A. They have no effect on purchasing decisions.
+B. They can affect budget allocations and purchasing priorities.
+C. They only impact small businesses.
+D. They primarily influence consumer markets, not business markets.
+B
+A supplier who provides customized solutions to a business customer based on specific requirements is engaging in:
+A. Product standardization
+B. Product differentiation
+C. Systems selling
+D. Market penetration
+C
+Which type of costs below are NOT the fixed cost (Choose all that apply):
+
+A. Real estate rental fee
+B. Packaging
+C. Product material
+D. Transportation fee
+BCD
+A business buyer decides to purchase a new type of software after consulting with multiple departments and stakeholders. This decision process is known as:
+A. Systems selling
+B. New-task buying
+C. Influencer marketing
+D. Group buying
+B
+Analyze the role of a buying center in the business buying process.
+A. It consists of a single person making all purchasing decisions.
+B. It includes all individuals and units involved in the purchasing decision.
+C. It focuses only on approving final purchases.
+D. It has no significant impact on the buying process.
+B
+The stage in the new product development process where potential products are evaluated against a set of company criteria to eliminate poor ideas is:
+A. Business Analysis
+B. Idea Generation
+C. Idea Screening
+D. Concept Development And Testing
+C
+What elements are not included in the Augmented Product?
+A. Delivery & credit
+B. Design
+C. Warranty
+D. After-sale services
+B
+The ________ environment consists of factors that affect consumer purchasing power and spending patterns.
+A. cultural
+B. political
+C. technological
+D. economic
+E. natural
+D
+The first stage in the new product development process is:
+A. Business Analysis
+B. Idea Screening
+C. Idea Generation
+D. Concept Development and Testing
+C
+Which product level adds customer value by offering additional services and benefits?
+A. Potential Product
+B. Core Product
+C. Actual Product
+D. Augmented Product
+D
+Determining the position of a competitive product is which step in the positioning process?
+A. First
+B. Second
+C. Third
+D. Fourth
+B
+Market segmentation helps:
+A. Select the target field
+B. Meet the highest customer needs
+C. Allocate resources effectively
+D. All of the above effects
+D
+A small-scale, low-capacity business that sells a new product in a heterogeneous market should choose:
+A. Differentiated Marketing Strategy
+B. Undifferentiated Marketing Strategy
+C. Concentrated Marketing Strategy
+D. Product Development Strategy
+C
+Critically assess the impact of technological advancements on business buying behavior.
+A. They have no significant impact.
+B. They can streamline purchasing processes and improve decision-making.
+C. They only affect consumer buying behavior.
+D. They increase costs and complicate the buying process.
+B
+Evaluate the impact of cultural factors on consumer buying behavior in international markets.
+A. Cultural factors have no impact on consumer behavior.
+B. Understanding cultural differences is crucial for tailoring marketing strategies.
+C. Cultural factors only affect pricing decisions.
+D. Cultural factors are the same across all countries.
+B
+What criteria should a company use to evaluate the performance of its suppliers?
+
+A. Price and delivery speed
+B. Product variety and advertising spend
+C. Relationship with competitors and market share
+D. Sales volume and brand recognition
+A
+What criteria should a company use to assess the effectiveness of its marketing strategies in influencing consumer behavior?
+A. Sales volume and market share
+B. Brand awareness and customer loyalty
+C. Advertising spend and distribution coverage
+D. Product features and pricing
+B
+How do psychological factors like perception and motivation affect consumer behavior?
+A. They have minimal impact compared to economic factors.
+B. They primarily influence the final purchase decision.
+C. They shape how consumers interpret information and what drives them to buy.
+D. They only affect first-time buyers.
+C
+Evaluate the importance of building long-term relationships with suppliers in business markets.
+A. It is unimportant as business transactions are typically one-time events.
+B. It can lead to improved efficiency, cost savings, and collaboration.
+C. It only matters for large multinational companies.
+D. It increases the complexity of the purchasing process.
+B
+A company repurchases raw materials to manufacture its products. This type of buying is an example of:
+A. New-task buying
+B. Modified rebuy
+C. Straight rebuy
+D. Systems selling
+C
+Customer perceptions of a product's value set the ________ for prices.
+
+A. Range
+B. Floor
+C. Ceiling
+D. Target
+C
+Which of the following best defines a business market?
+A. A market where businesses sell products to end consumers
+B. A market where businesses sell products and services to other businesses
+C. A market focused on retail sales
+D. A market driven by individual customer preferences
+B
+Critically assess the role of post-purchase behavior in the buyer decision process.
+A. It has no significant impact on future buying decisions.
+B. Positive post-purchase experiences can lead to customer loyalty and repeat purchases.
+C. It only affects high-involvement purchases.
+D. It is irrelevant for convenience products.
+B
+In the context of consumer behavior, what does the term "cognitivedissonance" refer to?
+A. The initial attraction to a product
+B. The discomfort a consumer feels after making a difficult purchase decision
+C. The process of evaluating product alternatives
+D. The influence of family and friends on buying behavior
+B
+A company targets its marketing efforts toward young professionals who value innovative technology. This is an example of:
+A. Market segmentation
+B. Product differentiation
+C. Mass marketing
+D. Market penetration
+A
+Analyze how social factors such as family and reference groups can influence consumer buying behavior.
+A. They have no significant impact on buying decisions.
+B. They only affect the purchasing decisions of teenagers.
+C. They can significantly shape preferences and purchase decisions.
+D. They only matter for high-involvement purchases.
+C
+In marketing research, managers often start with _______ research and later follow with _______ research.
+A. exploratory; descriptive or causal
+B. descriptive; secondary or commercial
+C. descriptive; exploratory or secondary
+D. causal; descriptive or exploratory
+E. causal; exploratory or secondary
+A
+Walmart sends a trained observer to watch and interact with customers as they shop in a Walmart store. This is an example of
+A. secondary research
+B. survey research
+C. ethnographic research
+D. experimental research
+E. descriptive research
+C
+A church targeting different demographic groups to increase attendance is an example of __________.
+
+A. for-profit marketing
+B. not-for-profit marketing
+C. societal marketing
+D. customer evangelism
+E. caring capitalism
+B
+Your marketing department is currently researching the size, density, location, age, and occupations of your target market. Which environment is being researched?
+
+A. demographic
+B. psychographic
+C. economic
+D. geographic
+E. cultural
+A
+You have an upset stomach. Your mother rushes to the corner convenience store for a bottle of Pepto-Bismol. This product is a(n) ________ product.
+A. Convenience
+B. Unsought
+C. Specialty
+D. Shopping
+E. Augmented
+A
+Chewing gum is stocked in many outlets in the same market or community; in fact, it is placed in as many outlets as possible. This is an example of ________ distribution.
+A. Exclusive
+B. Selective
+C. Multichannel
+D. Intensive
+E. Disintermediated
+D
+A group of business entrepreneurs who worried about their teenage children drinking and driving decided there must be some way to approach this problem proactively. They came up with an idea for a pair of blurry goggles. They believed looking through the goggles would simulate what the world looks like when someone is seriously intoxicated. The first crude pair of blurry goggles developed by the entrepreneurs to show to prospective customers was ________.
+A. a prototype
+B. a component part
+C. a synergistic model
+D. a product image
+E. a product idea
+A
+A buyer's decisions are influenced by _______ such as the buyer's age and life-cycle stage, occupation, economic situation, lifestyle, and personality and self-concept.
+A. Personal characteristics
+B. Reference groups
+C. Perceptions
+D. Attitudes
+E. Psychographics
+A
+_______ is defined as the use of commercial marketing concepts and tools in programs designed to influence individuals' behavior to improve their well-being and that of society.
+A. Unsought product marketing
+B. Internal marketing
+C. Social marketing
+D. Product line
+E. Interactive marketing
+C
+Which of the following is the final stage in the new product adoption process?
+A. Awareness
+B. Adoption
+C. Evaluation
+D. Acceptance
+E. Trial
+B
+Which of the following is a specific criterion for segmenting consumer markets, personality or preferences?
+
+A. Geography
+B. Demographic
+C. Psychology
+D. Behavior
+C
+Which of the following is an objective of informative advertising?
+A. Build brand preference
+B. Change customer perceptions of brand value
+C. Encourage customers to switch brands
+D. Suggest new uses for a product
+E. Keep brand in customer minds during off-seasons
+D
+The natural resources that are needed as inputs by marketers or that are affected by marketing activities are referred to as the _______.
+A. Raw material market
+B. Natural environment
+C. Endangered environment
+D. Green movement
+E. Factors of production
+B
+When consumers cannot judge quality because they lack the information or skill, price becomes _______.
+A. Less important
+B. Insignificant
+C. An important quality signal
+D. The only driver of the purchase
+E. Negotiable
+C
+At Finley's Fine Goods, members of the sales force and marketing department tend to have disagreements when things go wrong with a customer. The marketers blame the salespeople for poorly executing their strategies, while the salespeople blame the marketers for being out of touch with the customer. Which of the following steps should upper-level management at Finley's Fine Goods take to help bring the sales and markeing functions closer together?
+A. establish a customer sales force structure
+B. establish a complex sales force structure
+C. appoint a new sales force manager
+D. appoint a marketing executive to oversee both marketing and sales
+D
+Sally purchased Brand X lotion. In comparing her perception of how the lotion made her skin feel and look to her expectations for Brand X lotion, Sally was measuring her level of _______.
+A. Share of customers
+B. Customer satisfaction
+C. Customer equity
+D. Demand
+E. Customer lifetime value
+B
+Shampoo marketers rate buyers as light, medium, or heavy product users. This is ________ segmentation.
+A. Benefit
+B. User status
+C. Usage rate
+D. Psychographic
+E. Occasions
+C
+A test market is:
+A. The process of introducing a new product into the market.
+B. A small group of consumers who provide feedback on a product concept.
+C. A geographic area selected to test the marketing program for a new product.
+D. A detailed version of the new product idea stated in meaningful consumer terms.
+E. The process of introducing a new product into the market.
+C
+A detailed version of the new product idea stated in meaningful consumer terms is called a:
+A detailed version of a new idea stated in meaningful customer terms is called a ________.
+
+A. Product idea
+B. Product concept
+C. Product image
+D. Product proposal
+E. Product movement
+B
+Stephanie and Jamal attended a sales seminar. Both left the seminar with differing opinions about what was important to implement in their jobs. Both used the information in different ways, according to what each already believed was important. They have engaged in _______.
+A. Selective distortion
+B. Selective attitude
+C. Selective retention
+D. Selective attention
+E. Perceptual defense
+A
+With ________, price is set to match consumers' perceptions of product value.
+A. Variable cost pricing
+B. Cost-plus pricing
+C. Cost-based pricing
+D. Value-based pricing
+E. Everyday low pricing
+D
+Which of the following forces would marketers be MOST likely able to influence?
+A. Geographic population shifts
+B. Core cultural values
+C. Increasing ethnic diversity
+D. Media publics
+E. Income distribution
+D
+Despite the data glut that marketing managers receive, they are most likely to complain that they lack which of the following?
+A. Enough information of the right kind
+B. Secondary information
+C. Timely information
+D. Searchable information
+E. Primary information
+A
+Flurrbies, a brand of winter accessories that fell in and out of favorability with customers quickly, is an example of a _______.
+A. Style
+B. Fashion
+C. Fad
+D. Product idea
+E. Market strategy
+C
+ABC Company has decided to use mail questionnaires to collect data. This method has all the following advantages EXCEPT which one?
+a. low cost per respondent
+b. may encourage more honest answers
+c. has an average response rate
+d. no interviewer to bias respondents' answers
+e. can collect large amounts of information
+C
+Because of increased ________, consumers will demand higher-quality products, books, magazines, travel, personal computers, and Internet services.
+a. income
+b. family size
+c. education
+d. social class awareness
+e. none of the above
+A
+________ has been affected by the need to include unit pricing, open dating, and nutritional information.
+a. Branding
+b. Packaging
+c. Labeling
+d. Product line filling
+e. Product mixing
+C
+Which of the following is NOT an example of the type of public that is part of a company's marketing environment ?
+A. financial
+B. media
+C. government
+D. citizen-action
+E. marketing department
+E
+Developing a product or service involves defining the benefits that it will offer. These benefits are communicated and delivered by ________ such as quality, features, and style and design.
+a. package labeling
+b. product attributes
+c. support services
+d. product mixes
+e. marketing tools
+B
+When a product is in the maturity stage, the company should consider ________.
+a. harvesting the product
+b. modifying the product, market, or marketing mix
+c. divesting the product
+d. liquidating the product
+e. dropping the product
+B
+When the size, purchasing power, and profiles of a market segment can be determined, it possesses the requirement of being ____.
+A. measurable
+B. accessible
+C. substantial
+D. actionable
+E. observable
+A
+________ is very believable because news stories, features, sponsorships, and events seem more real and believable to readers than ads do.
+
+a. The competitive-parity method
+b. Public relations
+c. Personal communication
+d. Nonpersonal communication
+e. Personal selling
+B
+Nathan Zabalas owns a regional chain of drug stores. Before expanding nationwide, Nathan is conducting marketing research to determine the best options for opening new stores. He plans to start by collecting secondary data. Which of the following is NOT a source of secondary data that Nathan might use?
+a. commercial online databases
+b. online questionnaire
+c. web search engines
+d. local chamber of commerce
+e. competitors' websites
+B
+ING, an international insurance and financial services company, is the primary sponsor of the annual New York City Marathon, which is attended by over one million fans and watched by approximately 300 million viewers worldwide. The ING logo and name appear throughout the race course. ING most likely sponsors the event in order to appeal to which type of public?
+a. financial
+b. citizen-action
+c. government
+d. general
+e. internal
+D
+A product in the early maturity or decline stage may require ________ advertising.
+a. Informative
+b. Comparative
+c. Persuasive
+d. Reminder
+e. Cooperative
+D
+With what groups do firms conduct concept testing for new products? (soạn bởi thủy Tiên nha)
+a. suppliers
+b. employees
+c. target customers
+d. manufacturers
+e. competitors
+C
+A distinguishing feature of a contractual VMS is that coordination and conflict management among the independent members of the channel are attained through ________.
+a. agents and brokers
+b. unspoken partnerships
+c. limited liability incorporation
+d. contractual agreements
+e. natural competitive forces
+d
+Marketers of automobiles, financial services, and travel are most likely to use which of the following types of segmentation ?
+A. gender
+B. income
+C. occasion
+D. usage rate
+E. readiness stage
+B
+When a company interacts one-on-one with large numbers of customers to create customer-unique value by designing products and services tailor-made to individual needs, it is following ________.
+a. micromarketing
+b. mass marketing
+c. mass customization
+d. differentiated marketing
+e. localization
+C
+B to-B e-procurement yields many benefits. These include all of the following EXCEPT ________.
+a. reduced transaction costs
+b. more efficient purchasing for both buyers and sellers
+c. elimination of inventory problems
+d. reduced order processing costs
+e. elimination of much of the paperwork associated with traditional ordering cedures
+C
+A firm is using ________ when it charges a high, premium price for a new product with the intention of reducing the price in the future.
+a. price skimming
+b. trial pricing
+c. value pricing
+d. market-penetration pricing
+e. prestige pricing
+A
+________ tailors brands and promotions to the needs and wants of specific cities, neighborhoods, and even stores.
+a. Undifferentiated
+b. Differentiated marketing
+c. Niche marketing
+d. Local marketing
+e. Individual marketing
+d
+Which of the following is NOT a way that business and consumer markets differ?
+a. market structure and demand
+b. nature of the buying unit
+c. satisfaction of needs through purchases
+d. types of decisions
+e. decision processes
+C
+Promotional pricing can have all of the following adverse effects EXCEPT ________.
+a. creating deal-prone customers
+b. eroding the brand's value in the eyes of customers
+c. giving pricing secrets away to competitors
+d. becoming addictive to both the customer and business
+e. delaying the company's focus on long-term strategies
+C
+An intensive distribution strategy is most suitable for which consumer product category?
+a. convenience products
+b. unsought goods
+c. shopping products
+d. luxury products
+e. supplies
+A
+Mach 3 razor blades must be used in the Mach 3 razor. Which type of pricing is being used?
+a. product line pricing
+b. optional product pricing
+c. captive product pricing
+d. by-product pricing
+e. product bundle pricing
+C
+Big Mike's Health Food Store sells nutritional energy-producing foods. The price of the products sold varies according to individual customer accounts and situations. For example, long-time customers receive discounts. This strategy is an example of ________.
+a. price elasticity
+b. cost-plus pricing
+c. dynamic pricing
+d. everyday low pricing
+e. penetration pricing
+C
+When Polaroid set the general price range of its cameras low and the markup on its film high, it was practicing ________.
+a. market-penetration pricing
+b. market-skimming pricing
+c. product line pricing
+d. captive product pricing
+e. price bundling
+D
+People change the goods and services they buy over time because of the two changing factors of ________.
+a. belief and attitude
+b. perception and personality
+c. age and life-cycle stage
+d. self- concept and learning
+e. family and tradition
+c
+An ad for a new convection oven shows a busy professional woman serving dinner to her family. The convection oven is seen in the background, and the headline reads, "The latest development in time travel."
+This is an example of what type of execution style?
+A. testimonial evidence
+B. slice of life
+C. fantasy
+D. scientific evidence
+E. mood or image
+B
+HiPoint Telephone Company uses two-part pricing for its long-distance call charges. Because this is a service, the price is broken into a fixed fee plus a(n) ________.
+a. fixed usage rate
+b. variable usage rate
+c. standard usage rate
+d. market usage rate
+e. optional usage rate
+b
+In routine buying situations, which members of the buying center have formal or informal power to select or approve the final suppliers?
+a. users
+b. influencers
+c. gatekeepers
+d. deciders
+e. buyers
+D
+Consumers today receive commercial messages from a broad range of sources. However, consumers _______ the way marketers do.
+A. don't distinguish between message sources
+B. are able to differentiate among messages sources
+C. don't care about buzz marketing
+D. are not able to block out messages
+E. block them all out
+A
+Today's consumers do not need to rely on marketer-supplied information about products and services because they can use _______ to seek out a wealth of information.
+A. marketing communications
+B. direct marketing
+C. the Internet and other technologies
+D. mass market media
+E. informative advertising
+C
+All of the following are reasons that marketers are losing confidence in television advertising EXCEPT which one?
+A. TV ad spending is rising at a slower rate than online ad spending.
+B. TV and other mass media no longer capture the lion share of promotional budgets.
+C. Many viewers are using video streaming or DVRs.
+D. Mass media costs are rising.
+E. TV audience size is on the decline.
+D
+An advantage of a vertical marketing system (VMS) is that it acts as a ________ system.
+a. unified
+b. creative
+c. modern
+d. customer-driven
+e. task-driven
+a
+Secondary data consists of information ____.
+A. that already exists somewhere but is outdated
+B. that does not currently exist in an organized form
+C. that already exists but was collected for a different purpose
+D. used by competitors
+E. that researchers can only obtain through surveys and observation
+C
+Donna wants to buy a new coat. During the ________ stage of her purchase process she will ask her friends to recommend a store and/or a style of coat. She will search the newspaper for coat sales, and she will visit nearby stores to see what is available in her price range.
+a. need recognition
+b. information search
+c. evaluation of alternatives
+d. purchase decision
+e. postpurchase behaviour
+B
+Lexus works to keep customers happy after each sale, aiming to delight the customer in order to gain a customer for life. In this pursuit, Lexus is focused on which step of the buyer decision process?
+a. need recognition
+b. information search
+c. evaluation of alternatives
+d. purchase decision
+e. postpurchase behavior
+E
+All of the groups within a company are called the ________.
+a. cultural environment
+b. local public
+c. internal environment
+d. corporate culture
+e. general public
+C
+Causal research is used to ________
+
+A. test hypotheses about cause-and-effect relationships
+B. gather preliminary information that will help define problems
+C. uncover information in an unstructured way
+D. describe marketing problems or situations
+E. quantify observations that produce insights unobtainable through other forms of research
+A
+Your firm added three new products earlier this year to increase variety for customers. Two of them failed to reach even minimal sales. Which of the following is LEAST likely to have been the cause of their failure?
+a. The products were priced too high.
+b. The products were advertised incorrectly.
+c. Competitors fought back harder than expected.
+d. Research was too extensive.
+e. The product launch was ill-timed.
+D
+A product with unique characteristics or brand identification for which a significant group of buyers is willing to make a special purchase effort is called:
+
+A. Unsought Product
+B. Specialty Product
+C. Shopping Product
+D. Convenience Product
+B
+Few people can afford the best in everything they buy. At times everyone needs a product with less quality or performance with a correspondingly lower price. In this case a consumer would purchase a product positioned with a ________ strategy.
+a. more-for-the-same
+b. more-for-less
+c. same-for-less
+d. less-for-much-less
+e. all-or-nothing
+d
+In recent years, product safety and environmental responsibility have become major ________ concerns.
+a. branding
+b. packaging
+c. product mix
+d. service
+e. product line
+B
+A channel consisting of one or more separate producers, wholesalers, or retailers that seek to maximize their own profit-even at the expense of profits for the channel as a whole-is a(n) ________.
+a. vertical marketing system
+b. conventional distribution channel
+c. independent channel allocation
+d. corporate VMS
+e. administered vertical marketing system
+B
+Of the three typical types of sales force structures, which one is often supported by many levels of sales management positions in specific geographical areas?
+a. Territorial
+b. Product
+c. Customer
+d. complex systems
+e. Group
+A
+All of the following are accurate descriptions of modern marketing EXCEPT which one?
+a.Marketing is the creation of value for customers.
+b.Marketing is managing profitable customer relationships.
+c.Selling and advertising are synonymous with marketing.
+d.Marketing involves satisfying customers' needs.
+e.Marketing is used by for-profit and not-for-profit organizations.
+C
+Marlene Arau is a member of the sales force at Urban Fashions, a clothing manufacturer. Marlene is preparing for a first meeting with a wholesaler who is a potential customer. Marlene is learning as much as she can about the wholesaler's organization. Marlene is in the ________ step of the personal selling process.
+a. prospecting
+b. qualifying
+c. preapproach
+d. approach
+e. handling objections
+C
+The real value of a company's marketing research and information system lies in the ________.
+a. amount of data it generates
+b. variety of contact methods it uses
+c. efficiency with which it completes studies
+d. quality of customer insights it provides
+e. marketing information system it follows
+d
+More companies are adopting the concept of ________, which carefully integrates and coordinates the company's many communication channels to deliver a clear, consistent, and compelling message about the organization and its brands.
+a. integrated marketing communications
+b. integrated personal selling
+c. integrated competitive methods
+d. nonpersonal communication channels
+e. buzz marketing
+a
+All of the following are stages in the PLC EXCEPT ________.
+a. introduction
+b. growth
+c. maturity
+d. adoption
+e. decline
+D
+Companies involved in deciding which items to include in the base price and which to offer as options are engaged in ________ pricing.
+product bundle
+b. optional product
+c. captive product
+d. by-product
+e. skimming
+B
+From the economic system's point of view, the role of marketing intermediaries is to transform the assortment of products made by producers into the assortment of products wanted by ________.
+a. channel members
+b. distributors
+c. consumers
+d. manufacturers
+e. marketers
+C
+When suppliers, distributors, and customers partner with each other to improve the performance of the entire system, they are participating in a ________.
+a. value delivery network
+b. channel of distribution
+c. supply chain
+d. demand chain
+e. conventional distribution channel
+A
+The use of short-term incentives to encourage the purchase or sale of a product or service is called ________.
+a. direct marketing
+b. sales promotion
+c. personal selling
+d. public relations
+e. Publicity
+B
+Using the PLC concept to develop marketing strategy can be difficult because strategy is both a ________ and a(n) ________ of the product's life cycle.
+a. mirror image; cause
+b. cause; result
+c. result; mirror image
+d. beginning; end
+e. purpose; effect
+B
+Choose the activities that company can obtain new products (Choose all that apply).
+
+A. Borrowing
+B. Acquisition
+C. New product development
+D. Recruiting
+BC
+For the past 10 years Bill and Margaret Kennedy have saved money to go to the Super Bowl should their team, the Chicago Bears, ever win the NFC championship. This is the year, and several tour companies offer attractive, but very similar, packages to the game. They want to be certain to choose the best one. Bill and Margaret are most likely to exhibit ________.
+a. complex buying behaviour
+b. dissonance-reducing buying behavior
+c. habitual buying behaviour
+d. variety-seeking buying behavior
+e. brand familiarity buying behaviour
+b
+Which of the following is NOT part of the business market?
+a. Scott Sign Systems sells interior signs to an Alabama resort.
+b. A country club buys chemicals for its swimming pool.
+c. Sue buys a gift for her mother.
+d. A Canadian software company buys tickets to send a group of salespeople make a presentation to a heavy equipment manufacturer in Japan.
+e. Airmark sells a vinyl printing press to a manufacturer of plastic bags.
+C
+A ________ consists of all the product lines and items that a particular seller offers for sale.
+a. product mix
+b. brand line
+c. consumer mix
+d. packaging mix
+e. line extension
+a
+Which type of product might require a more direct marketing channel to avoid delays and too much handling?
+a. lower-priced products
+b. perishable products
+c. high-priced products
+d. products in their maturity stage
+e. products in their decline stage
+B
+A consumer is considering buying a new smartphone and starts researching different brands online. Which stage of the buyer decision process is this?
+
+A. Purchase decision
+B. Post-purchase behavior
+C. Information search
+D. Need recognition
+C
+At the very least, a product's ________ identifies the product or brand. It might also describe several things about the product and promote the brand.
+a. line extension
+b. portfolio
+c. label
+d. copyright
+e. package
+C
+P&G has sold off a number of lesser or declining brands such as Oxydol detergent and Jif peanut butter. In these examples, management decided to ________ the products.
+a. further test
+b. maintain
+c. drop
+d. harvest
+e. ignore the test market results of
+C
+A sales ________ is the standard that establishes the amount each salesperson should sell and how sales should be divided among the company's products.
+a.
+goal
+b.
+task
+c.
+quota
+d.
+incentive
+e.
+contest
+c
+________ is the systematic design, collection, analysis, and reporting of data relevant to a specific marketing situation facing an organization.
+a. The marketing information system
+b. Competitive marketing intelligence
+c. Marketing research
+d. Competitive marketing research
+e. Causal research
+C
+________ means scheduling ads evenly within a given period. ________ means scheduling ads unevenly over a given time period.
+a. Pulsing; Continuity
+b. Continuity; Hard hitting
+c. Continuity; Pulsing
+d. Pulsing; Hard hitting
+e. Sequencing; Routing
+C
+The qualities buyers dislike most in salespeople include all EXCEPT which of the following?
+a. being pushy
+b. being deceitful
+c. being reliant on technology
+d. being unprepared
+e. being disorganized
+C
+A marketer of hair care products targeted at African American women created an advertising message that told the women their hair could be worn any way they wanted as opposed to wearing it straight. The message suggested the women did not need to conform to the mainstream media definition of beauty. It is most accurate to say that this ad was based on an understanding of ________.
+A) social class
+B) the family life cycle
+C) self-concept
+D) lifestyle
+E) sensory marketing.
+C
+Which of the following questions would be the best one to help a marketer evaluate the return on a sales promotion investment?
+a. Did the promotion run too long or too short?
+b. Did customers enjoy the events associated with the promotion?
+c. Did customers search the promotion's Web site for additional product information?
+d. Did the promotion increase purchases from current customers or attract new customers?
+e. Did the distribution of the promotional information match consumer expectations and needs?
+d
+Which of the following strategies would a company most likely use to increase customer satisfaction?
+a. decreasing the variety of offered services
+b. divesting
+c. lowering prices
+d. "firing" unprofitable customers
+e. limiting customer experiences with a brand
+c
+Which of the following is/are examples of product line length? (soạn bởi thủy Tiên nha)
+a. hamburger and cheeseburger
+b. hamburger and apple pie
+c. Coke and Diet Coke
+d. Both "hamburger and cheese burger" and "Coke and Diet Coke" are correct
+e. all of these
+d
+You receive a report that 68% of your target market has been exposed to your ad campaign during a given period of time. The information in the report relates to ________.
+a. Reach
+b. frequency
+c. impact
+d. engagement
+e. qualitative value
+a
+When it first opened for business, Home Depot claimed to offer better products at lower prices. This hard-to-sustain value proposition is called ________.
+a. more-for-the-same
+b. more-for-less
+c. more-for-more
+d. same-for-less
+e. same-for-more
+b
+After determining its advertising objectives, the company's next step in developing an advertising program is to ________.
+a. set its advertising budget
+b. determine the media vehicle
+c. use cash rebate offers
+d. plan its advertising campaign
+e. develop its message strategy
+A
+Xbox 360 decides to add a free subscription to XBOX magazine with every game bought in an effort to differentiate its offering from PS3 games. This is an example of ________.
+a. good-value pricing
+b. add-on pricing
+c. product-support pricing
+d. value-added pricing
+e. cost-based pricing
+D
+A problem with the rapidly expanding use of e-purchasing is that it ________.
+a. can erode established customer-supplier relationships
+b. saves less time than expected
+c. generates more transactions to document
+d. generates less cost savings than predicted
+e. reduces the amount of time purchasing people can spend on strategic issues
+a
+The set of marketing tools a firm uses to implement its marketing strategy is called the ________.
+a. promotion mix
+b. product mix
+c. marketing mix
+d. TQM
+e. marketing effort
+c
+Max Samuelson is a high-end fashion designer who markets his clothing lines through a limited number of highly reputable retailers. Max uses ________.
+a. exclusive distribution
+b. exclusive dealing
+c. exclusive territorial agreements
+d. full-line forcing
+e. tying agreements
+a
+Typically, producers who use captive-product pricing set the price of the main product ________ and set ________ on the supplies necessary to use the product.
+a. low; low markups
+b. high; low markups
+c. low; high markups
+d. high; high markups
+e. moderately; moderate markups
+c
+Worthington Farm raises chickens. For years, it has used wooden coops to haul its poultry to market. The owner of the farm needs to buy some replacement coops and is considering buying plastic coops that are slightly more expensive than wooden ones but much easier to clean after use. This purchase of coops is an example of a ________.
+a. modified rebuy
+b. straight rebuy
+c. new task
+d. solution selling situation
+e. value analysis
+A
+Advertising ________ define the task that advertising must accomplish with a specific target audience during a specific period of time.
+
+a. objectives
+b. budgets
+c. strategies
+d. campaigns
+e. evaluations
+A
+What competitive positioning can attack a more-for-more strategy by introducing a brand offering with comparable quality at a lower price?
+a. more-for-the-same
+b. more-for-less
+c. same-for-less
+d. less-for-much-less
+e. all-or-nothing
+B (đáp án chuẩn)
+Moving away from ________, marketers have been shifting toward highly focused marketing, spawning a new generation of more specialized and highly targeted communications efforts.
+
+a. mass marketing
+b. Advertising
+c. direct marketing
+d. pull strategies
+e. push strategies
+A
+You call in a department manager to assist in a purchase of industrial equipment. You are considering a change in product specifications, terms, and possibly suppliers. This is most likely a ________ situation.
+a. modified rebuy
+b. new task
+c. straight rebuy
+d. solution selling
+e. value analysis
+a
+Rachel Patino works for a wholesale company called Distributors Unlimited. She is responsible for buying and selling goods at a profit to small retailers. What is her market?
+a. business
+b. reseller
+c. wholesale
+d. consumer
+e. retail
+b
+Which of the following contact methods has the poorest response rate?
+a. mail
+b. telephone
+c. personal interviewing
+d. online
+e. group interviewing
+a
+Sales promotions are targeted toward all of the following EXCEPT ___________
+A. retailers
+B. investors
+C. final buyers
+D. business customers
+E. members of the sales force
+B
+Which of the following best explains why companies are adopting the team selling approach to service large,complex accounts?
+A. Products have become too complicated for one salesperson to support.
+B. Customers prefer dealing with many salespeople rather than one sales representative.
+C. Salespeople prefer working in groups because of the opportunity for flex hours and job sharing.
+D. A group of salespeople assigned to one account is cost effective for corporations.
+E. Fewer skilled salespeople are working in the high-tech industry.
+A
+George is buying his first house. He has found two houses that he thinks he likes. He is highly involved in the purchase and perceives significant differences between these two houses. George will likely undertake ________.
+a. variety-seeking buying behaviour
+b. complex buying behavior
+c. opinion leadership
+d. dissonance-reducing buying behavior
+e. marketing myopia
+b
+When a pharmaceutical ad includes a world-renowned heart surgeon describing the benefits of the medication, which type of execution style is being used?
+a. mood or image
+b. fantasy
+c. personality symbol
+d. musical
+e. technical expertise
+e
+In general, a company should enter only segments in which it can ________ and ________.
+a. offer lower prices; ship faster
+b. offer superior value; gain advantages over competitors
+c. offer superior value; ship faster
+d. gain advantages over competitors; mass market its products
+e. offer lower prices; develop customer loyalty
+b
+Which of the following statements best explains why idea screening may be the most important step of new-product development?
+a. It increases the number of ideas generated.
+b. Some potentially profitable ideas may be ill perceived by the idea screeners.
+c. Some ideas that will become market disasters may be originally viewed favorably by the idea screeners.
+d. It gives research and development team members an opportunity to gather consumer feedback.
+e. It saves the company money in product development costs by giving the green light to only the product ideas that are likely to be profitable.
+E
+A ________ is a need that is sufficiently pressing to direct a person to seek satisfaction.
+a. stimulus
+b. perception
+c. culture
+d. motive
+e. tradition
+d
+Family is one of the ________ factors that influence consumer behavior.
+a. cultural
+b. social
+c. personal
+d. psychological
+e. business
+b
+Break-even pricing, or a variation called ________, is when the firm tries to determine the price at which it will break even or make the profit it is seeking.
+a. competition-based pricing
+b. target return pricing
+c. fixed cost pricing
+d. value-based pricing
+e. customer-based pricing
+B
+Under what circumstances might it be wise for a company to do little or no test marketing?
+a. when a new product requires a major investment
+b. when management is not sure of the product
+c. when management is not sure of the marketing program
+d. when the product has no substitutes and is new in its category
+e. when the costs of developing and introducing the product are low
+e
+Which of the following is NOT considered a source of competitive marketing intelligence?
+a. Suppliers
+b. Resellers
+c. Key customers
+d. Causal research
+e. Competitors' activities
+d
+Which positioning strategy offers consumers a "good deal" by offering equivalent-quality products or services at a lower price?
+a. more-for-the-same
+b. more-for-less
+c. same-for-less
+d. less-for-much-less
+e. all-or-nothing
+c
+Companies that use brand ambassadors are participating in ________.
+a. opinion leading
+b. traditional marketing
+c. buzz marketing
+d. direct marketing
+e. values marketing
+c
+Lancaster Recycling has a history of problems with customers who do not pay their bills on time. Lancaster Recycling wants to improve its cash situation, reduce bad debts, and reduce credit-collection costs. The company might consider which of the following forms of pricing?
+a. by-product
+b. inflation-adjusted
+c. cash discounts
+d. captive-product
+e. penetration
+C
+The ________ concept is aligned with the philosophy of continuous product improvement and the belief that customers will choose products that offer the most in quality, performance, and innovative features.
+a. product
+b. production
+c. customer
+d. marketing
+e. promotion
+A
+East Bay Communications has increased its inside sales force. This will help East Bay in all EXCEPT which one of the following ways?
+a. East Bay salespeople will have more time to sell to major accounts.
+b. East Bay salespeople will have more time to find major new prospects.
+c. East Bay salespeople will have more time to provide after-the-sale customer service.
+d. East Bay customers will have questions answered in a timely manner.
+e. East Bay customers will have full access to sales automation technology.
+E
+________ is the product life cycle period when sales fall off and profits drop.
+a. Introduction
+b. Growth
+c. Maturity
+d. Decline
+e. Development
+d
+Which sales management tool helps a salesperson know which customers to visit and which activities to carry out during a week?
+a. time-and-duty analysis
+b. sales force automation systems
+c. call plan
+d. sales quota plan
+e. positive incentives plan
+C
+A(n) ________ controls the flow of information to others in the buying center.
+a. user
+b. influencer
+c. buyer
+d. gatekeeper
+e. decider
+d
+A marketer focuses on several commonalities among all consumers. This marketer appears to be engaging in ________.
+a. differentiated marketing
+b. undifferentiated marketing
+c. segmented marketing
+d. concentrated marketing
+e. mass customization
+b
+You just lost a major account because a competitor provided the most complete system to meet the customer's needs and solve the customer's problems, and made the sale. In other words, the competition beat you with ________.
+a. solutions selling
+b. team selling
+c. cross functional skill
+d. customer relationship management
+e. promotions
+a
+A marketer must be familiar with the five major product mix pricing situations. Which of the following is NOT one of them?
+a. product line pricing
+b. optional product pricing
+c. captive product pricing
+d. unbundled product pricing
+e. by-product pricing
+d
+Which of the following is NOT one of the four major communication functions?
+A) feedback
+B) encoding
+C) noise.
+D) response
+E) decoding.
+C
+The purpose of idea generation is to create a ________ number of ideas. The purpose of succeeding stages is to ________ that number.
+a. small number; reduce
+b. small number; increase
+c. large number; increase
+d. large number; reduce
+e. limited number; sustain
+D
+Mark has long supported the actions and decisions of his city's mayor. However, many recent news stories have raised questions about the ethics of the mayor's programs and initiatives. Mark doubts that the mayor, in whom he has such faith, could behave unethically, and Mark tends to distrust the information in the media. Mark continues to support the mayor. It is most accurate to say that Mark has engaged in ________.
+a. selective distortion
+b. selective attitude
+c. selective retention
+d. selective attention
+e. perceptual defense
+a
+It is most accurate to say that customers buy from stores and firms that offer which of the following?
+A) the highest value for the dollar
+B) the highest customer-perceived value.
+C) the highest level of customer satisfaction
+D) the most attractive company image
+E) the most concern for society's interests.
+B
+If Northwest Awnings charges the same price for delivery of its product to any customer that is located within the Great Lakes states, but a different price to customers outside of the Great Lakes states, the company is using ________.
+a. psychological pricing
+b. promotional pricing
+c. reference pricing
+d. zone pricing
+e. uniform-delivered pricing
+d
+Which stage in the PLC is characterized by rapid market acceptance and increasing sales?
+a. introduction
+b. maturity
+c. growth
+d. decline
+e. product development
+c
+Intermediaries play an important role in matching ________.
+a. dealer with customer
+b. supply and demand
+c. product to region
+d. manufacturer to product
+e. information and promotion
+b
+A number of top fashion-modeling agencies would most likely be charged with ________ for jointly determining what commissions they would charge for models.
+a. prestige pricing
+b. predatory pricing
+c. price bundling
+d. dynamic pricing
+e. price fixing
+e
+Which of the following is a product concept?
+a. a battery-powered all-electric car
+b. a pocket-size digital music player
+c. an energy efficient humidifier
+d. a thin, lightweight laptop with extended battery life appealing to students and young professionals who want access to their computer anywhere, anytime
+e. a high-tech, stylish running shoe
+d
+Focus group interviewing has become one of the major marketing research tools for getting insight into consumer thoughts and feelings. However, if the sample size is too small, it is likely to be difficult to ________.
+a. find enough secondary data to support the findings
+b. orchestrate cooperation among participants
+c. encourage honest responses to questions
+d. generalize from the results
+e. develop a nonprobability sample
+d
+Banks, credit companies, insurance companies, and other businesses that help finance transactions or insure against the risks associated with the buying and selling of goods and services are referred to as ________.
+a. financial intermediaries
+b. physical distribution firms
+c. marketing services agencies
+d. resellers
+e. wholesalers
+a
+Integrated marketing communications require a company's mass-market advertisements, Web site, e-mail, and personal selling communications to all have ________.
+a. equal portions of the advertising budget
+b. independent communications directors
+c. separate marketing objectives
+d. the same target audience
+e. the same message, look, and feel
+e
+Buyers are less price sensitive in all of the following situations EXCEPT ________.
+a. when the product they are buying is unique
+b. when the product they are buying is high in quality
+c. when substitute products are hard to find
+d. when the total expenditure for a product is high relative to their income
+e. when the product is exclusive
+d
+A company or store gains a(n) ________ by differentiating its products and delivering more value.
+a. competitive advantage
+b. positioning advantage
+c. cost advantage
+d. efficiency advantage
+e. synergy
+A
+Low-interest financing and longer warranties are both examples of ________.
+a. segmented pricing
+b. promotional pricing
+c. allowances
+d. discounts
+e. product-form pricing
+b
+Which of the following is NOT a challenge presented by the product life cycle that a firm must face?
+a. All products eventually decline.
+b. Changing tastes, technologies, and competition affect the marketing of the product as it passes through life-cycle stages.
+c. A firm must be good at developing new products to replace aging ones.
+d. A firm must be good at adapting its marketing strategies.
+e. It is difficult to plot the stages as a product goes through them.
+e
+Channel members add value by bridging the major gaps of ________ that separate goods and services from those who would use them.
+a. time, need, and form
+b. place, possession, and form
+c. time, place, and possession
+d. place, time, and need
+e. place, need, and distribution
+c
+Which marketing orientation holds that achieving rganizational goals depends on knowing the needs and wants of target markets and delivering the desired satisfactions better than competitors do?
+a. production concept
+b. marketing concept
+c. selling concept
+d. product concept
+e. societal marketing concept
+b
+A regional supermarket chain runs print, radio, and television advertisements announcing that 1% of each of its sales is donated to local after-school programs for underprivileged youth. This is an example of ________ marketing.
+a. cause-related
+b. generational
+c. sustainable
+d. tiered
+e. cultural
+a
+One reason ________ remains popular is that sellers are more certain about costs than about demand.
+a. markup pricing
+b. skimming pricing
+c. inelasticity pricing
+d. elasticity pricing
+e. penetration pricing
+a
+Consumer perceptions of the product's value set the ________ for prices.
+a. demand curve
+b. floor
+c. ceiling
+d. variable cost
+e. image
+c
+Product costs set a(n) ________ to a product's price.
+a. demand curve
+b. floor
+c. ceiling
+d. break-even cost
+e. experience curve
+b
+When two Taco Bell restaurants have a disagreement over who should be able to sell in quantity at a discount to the local high school band, they are in a ________ conflict.
+a. vertical
+b. conventional channel
+c. logistics
+d. horizontal
+e. functional
+d
+Which of the five major promotion tools includes building up a positive corporate image and handling unfavorable stories and events?
+a. sales promotion
+b. personal selling
+c. direct marketing
+d. public relations
+e. Advertising
+d
+Which of the following is the most likely result of a marketing strategy that attempts to serve all potential customers?
+a. All customers will be delighted.
+b. Customer-perceived value will increase.
+c. Customer evangelists will become unpaid salespersons for the service or product.
+d. Not all customers will be satisfied.
+e. The company will need to follow up with a service campaign.
+d
+Many institutional markets are characterized by ________ and ________.
+a. low budgets; vague criteria
+b. special needs; vague criteria
+c. low budgets; captive patrons
+d. captive patrons; limited access
+e. mismanagement; disgruntled workers
+c
+Developing a strong position within several segments creates more total sales than ________ marketing across all segments.
+a. Undifferentiated
+b. Differentiated
+c. Niche
+d. Target
+e. Individual
+a
+As a response to the Great Recession, most consumers have ________.
+a. amassed record levels of debt
+b. adopted back-to-basics spending patterns
+c. increased their investments in the stock market
+d. seen their home values increase
+e. abandoned value marketing
+b
+Even though several options are available at any one time, there ________ to segment a market.
+a. is one single best way
+b. is no single way
+c. is a most effective way
+d. are limited ways
+e. are four ways
+b
+Steve's Physco Skates sells its products to Walmart, who then sells them to the consumer. This is an example of a(n) ________.
+a. direct marketing channel
+b. producer channel
+c. indirect marketing channel
+d. retailer channel
+e. corporate vertical marketing system
+c
+An IBM sales representative is giving a product demonstration to a Best Buy representative. Assisting with the demonstration are an engineer, a financial analyst, and an information systems specialist. If IBM wins the Best Buy account, then all four IBM representatives will service the Best Buy account. This is an example of ________.
+A) team selling
+B) territorial selling
+C) inside selling
+D) prospecting
+E) sales promoting.
+A
+Apple's iPod has been called "one of the greatest consumer electronics hits of all time." More than 120 million iPods have been sold, and the iPod captures more than 70 percent of the music player market. This success has attracted many large, resourceful competitors. The iPod is in the ________ stage of the product life cycle.
+A) introduction
+B) product development
+C) maturity
+D) decline
+E) adoption.
+C
+Cameron loves to know about and purchase the most up-to-date technological gadgets. Among his friends, he is almost always the first to own the newest electronic product. Often the products that Cameron buys become adopted by large groups of consumers, but occasionally Cameron will purchase a product that is adopted by only a small portion of the population. To which of the following adopter groups does Cameron belong?
+a. innovator
+b. middle upper
+c. early majority
+d. late majority
+e. laggards
+a
+Economic, technological, and political factors are all ________ that affect the business buying process.
+a. organizational factors
+b. environmental factors
+c. interpersonal influences
+d. individual influences
+e. marketing stimuli
+b
+Product mix ________ refers to the total number of items a company carries within its product lines.
+a. length
+b. depth
+c. height
+d. width
+e. perimeter
+a
+Product mix ________ refers to the number of different product lines the company carries.
+a. length
+b. height
+c. width
+d. perimeter
+e. depth
+c
+Product mix ________ refers to the number of versions offered of each product in the line. Colgate toothpaste comes in 16 varieties, ranging from Colgate Total to Colgate Kids Toothpastes.
+a. length
+b. depth
+c. height
+d. width
+e. perimeter
+b
+To be successful, an advertisement must ________.
+a. guarantee the highest quality product
+b. offer the highest quality service
+c. reach consumers frequently
+d. promise the lowest market price
+e. gain the attention of consumers
+e
+Which of the following is the total combined customer lifetime values of all a company's current and potential customers?
+a. share of customer
+b. customer lifetime value
+c. customer equity
+d. profitability
+e. share of market
+c
+Apple iPhones are ussually sold with very high price at the begining then reduce price gradually, this is an example of...
+A. Skimming pricing strategy
+B. Market penetration pricing strategy
+C. Value-base pricing strategy
+D. Cost-base pricing strategy
+A
+Nielsen market research company organized a contest about ideas for new product of candy which aim to teenager. Which stage in new product development process of this activities
+A. Idea generation
+B. Idea screening
+C. Concept development and testing
+D. Test market
+A
+Student's take away Coffeeshop identify all costs of making the coffee due to quantity then calculate the break-even pricing and set the markup price for selling, that is an example of...
+A. Value-base pricing
+B. Cost-base pricing
+C. Value-added pricing
+D. Everyday low price
+B
+The "service recovery paradox" suggests that:
+
+A Customers are always more satisfied when a service failure occurs and is resolved compared to when no failure occurs at all.
+
+B. Service recovery is impossible in industries with high service variability.
+
+C. Effective service recovery can sometimes lead to higher customer satisfaction than if no service failure had happened.
+
+D. Companies should focus on preventing service failures rather than investing in service recovery efforts.
+C
+_________ is to divide a market into distinct groups of buyers who have different needs, characteristics, or behaviors and who might require separate marketing strategies or mixes.
+A. Segmentation
+B. Market targeting
+C. Differentiation
+D. Positioning
+A
+The Bentley department store chain makes extensive use of e-procurement. As a buyer, the store should expect to enjoy all of these benefits of e-procurement EXCEPT ________.
+a. greater access to new suppliers
+b. lower purchasing costs
+c. hastened order processing and delivery
+d. elimination of inventory problems
+e. more time for purchasing agents to focus on strategic issues
+d
+If a customer purchases a product frequently and with minimal effort, it is classified as:
+
+A. Specialty product
+B. Shopping product
+C. Convenience product
+D. Unsought product
+C
+Giant Food Stores buys a lot of frozen turkey products at Thanksgiving and Christmas due to high consumer demand. This is an example of ________ demand.
+a. joint
+b. derived
+c. elastic
+d. static
+e. inelastic
+b
+Building, keeping, and growing profitable relationships by delivering customer value and satisfaction is called ________.
+
+A. customer lifetime value
+B. customer perceived value
+C. customer relationship management
+D. database marketing
+E. societal marketing
+C
+In the communication process, the reaction of the receiver after being exposed to a message is called the _____.
+A) response
+B) answer.
+C) noise.
+D) feedback.
+E) decoding.
+D
+When the advertising objective is to build primary demand for a new product category, ________ advertising will most likely be used.Soạn bởi Tiên nhoa)
+a. persuasive
+b. informative
+c. comparative
+d. patronage
+e. institutional
+b
+A company can increase its business in four ways. Which is NOT one of these ways?
+a. It can add new product lines, thus widening its product mix.
+b. It can lengthen its existing product lines.
+c. It can add more versions of each product and thus deepen its product mix.
+d. It can discontinue some of its lines.
+e. It can increase the consistency of its product mix.
+d
+The decision-making unit of a buying organization is called the ________.
+a. business buyer
+b. buying center
+c. buying system
+d. business-to-business market
+e. supplier-development center
+b
+Which of the following is NOT a geographical pricing strategy?
+a. FOB-origin pricing
+b. zone pricing
+c. dynamic pricing
+d. uniform-delivered pricing
+e. basing-point pricing
+c
+An ad for Maybelline age-minimizing makeup in Ladies' Home Journal magazine featured actress Melina Kanakaredes and offered readers a $1-off coupon when they try the new makeup. In terms of the communication model, the sender of this message is ________.
+a. Melina Kanakaredes
+b. Ladies' Home Journal
+c. readers who redeem the $1-off coupon
+d. Maybelline
+e. the target market to whom Melina Kanakaredes appeals
+d
+Customer service is another element of product strategy. What is the name of these types of services?
+a. brand equity services
+b. product support services
+c. social marketing service
+d. unsought product services
+e. customer service
+B
+Carls Jr. came out with a new hamburger and released it in two different cities with two different price points. Marketers at Carls Jr. then analyzed the different levels of purchase made at the two different price points, planning on using the information to help them set a nationwide price for the new offering. This is an example of ________.
+a. observational research
+b. behavioral research
+c. qualitative research
+d. experimental research
+e. survey research
+D
+Survey research is least likely to be conducted through which of the following?
+A) the Web
+B) the mail
+C) the telephone
+D) personal interview.
+E) observation.
+E
+Marketers should be aware of laws, government agencies, and pressure groups that influence or limit various organizations and individuals in a given society. This is most accurately described as the ________ environment.
+a. socio-legal
+b. cultural
+c. political
+d. legal-technological
+e. economic
+C
+Value-based pricing is the reverse process of ________.
+a. variable cost pricing
+b. cost-plus pricing
+c. cost-based pricing
+d. good-value pricing
+e. value-added pricing
+C
+Which of the following marketing management orientations focuses primarily on improving efficiencies along the supply chain?
+a. production concept
+b. product concept
+c. selling concept
+d. marketing concept
+e. social marketing concept
+a
+Toro ran a clever preseason promotion on some of its snow blower models, offering some money back if the snowfall in the buyer's market area turned out to be below average. This is an example of a(n) ________.
+A) advertising specialty
+B) premium pack
+C) sweepstakes
+D) price pack
+E) rebate
+E
+When Burger King targets children, teens, adults, and seniors with different ads and media, it is practicing ________ segmentation.
+A) demographic
+B) age and life cycle
+C) psychographic
+D) behavioral
+E) generational.
+B
+________ is an important element in the marketing mix. It is the only element that does not represent costs.
+a. Profit maximization
+b. Market share leadership
+c. Price
+d. Product quality leadership
+e. The target market
+c
+Which type of organization helps companies to stock and move goods from their points of origin to their destination?
+a. financial intermediaries
+b. physical distribution firms
+c. marketing service agency
+d. resellers
+e. suppliers
+b
+Which form of marketing research is flexible, allows for explanation of difficult questions, and lends itself to showing products and advertisements?
+a. individual interviewing
+b. Internet surveys
+c. telephone surveys
+d. ethnographic research
+e. observational research
+a
+Researchers have found that a number of well-known brands tended to be strongly associated with one particular trait, such as Jeep with "ruggedness." Which of the following terms would a marketer use to describe a specific mix of human traits that may be attributed to a particular brand?
+a. brand perception
+b. product image
+c. brand personality
+d. brand concept
+e. brand equity
+c
+Which major promotion category makes use of displays, discounts, coupons, and demonstrations?
+a. sales promotion
+b. direct marketing
+c. Publicity
+d. public relations
+e. Advertising
+a
+Communication through the mail is categorized as a(n) ________ communication channel. (soạn bởi thủy Tiên nha)
+a. Nonpersonal
+b. word-of-mouth
+c. Personal
+d. Objective
+e. Ineffective
+A ( xem thêm ảnh giải thích)
+Stew Leonard, the owner of a highly successful regional supermarket chain, reacts adversely to lose a single customer sale. He feels that this amount to lose the entire stream of future purchases that a customer is likely to make if she remains in the area. Stew Leonard's concern is an illustration of which of the following?
+A. share of customer
+B. market share
+C. partner relationship management
+D. customer lifetime value
+E. market share maintenance
+D
+Johnson Boats wants to introduce a new model of boat into mature markets in highly developed countries with the goal of quickly gaining mass-market share. As a consultant, you should recommend a ________ pricing strategy.
+a. market-skimming
+b. market-penetration
+c. zone
+d. loss-leader
+e. captive-product
+b
+Robert has taken up bicycle riding as a hobby and as a way to maintain his physical stamina. He understands he will need to drink adequate water when he is bike riding. He wants to buy a hydration system. Having gathered a great deal of information, he has decided to compare three systems: Waterbags for Roadies, Supertanker Hydropacks, and Fast Water. Robert is in the ________ stage of his purchase decision.
+a. problem recognition
+b. evaluation of alternatives
+c. product choice
+d. postpurchase evaluation
+e. information choice
+b
+Shane Sudendorf is an active member of her sorority, two intramural teams, and a service organization at her college. She also actively participates on two online social networks, posting information about her day along with her thoughts on music, food, fashion, and culture. From this description, which of the following is the best way to describe Shane?
+a. an opinion leader
+b. a status symbol
+c. a laggard
+d. a Potential Rebounder
+e. a brand ambassador
+a
+Consumers can show their allegiance to brands, stores, or companies. Marketers can use this information to segment consumers by ____.
+A. user status
+B. loyalty status
+C. store type
+D. brand preference
+E. usage rate
+B
+Which of the following elements of the promotion mix involves making personal connections with customers for the purpose of making sales?
+a. personal selling
+b. Advertising
+c. e-commerce
+d. Publicity
+e. public relations
+a
+A hickory rocking chair, handmade by an Amish woodcarver in Lancaster, Pennsylvania, from locally grown wood is an example of a(n) ________.
+a. convenience product
+b. shopping product
+c. specialty product
+d. Service
+e. product attribute
+c
+When McDonald's and other fast food restaurants offer "value menu" items at surprisingly low prices, they are using ________.
+a. break-even pricing
+b. target profit pricing
+c. good-value pricing
+d. cost-plus pricing
+e. bundling
+c
+At one time Miller Beer was known as the "champagne of bottled beer." Unfortunately, Miller drinkers did not drink much beer. To increase sales, Miller was repositioned to attract the members of the middle working class. This segmentation approach is ________.
+A) user status
+B) usage rate
+C) benefit
+D) behavioral
+E) psychographic
+E
+When marketers at Procter & Gamble selected the Millennials, a demographic that includes college students, as an untapped group of potential customers for their Febreze line of products, they were executing which step in the process of designing a customer-driven marketing strategy?
+A) market segmenting
+B) mass marketing
+C) differentiation
+D) targeting
+E) positioning.
+D
+When Netflix began delivering DVDs directly to customers through the mail instead of using a brick-and-mortar system, Netflix was following the trend of ________.
+a. indirect marketing
+b. disintermediation
+c. a franchise system
+d. exclusive distribution
+e. selective distribution
+b
+An advertisement for Adidas shoes features a guy dreaming he can outrun everything wearing his Adidas. It closes with the statement, "Impossible is nothing? This is an example of what type of execution style?
+a. mood or image
+b. musical
+c. fantasy
+d. slice of life
+e. scientific evidence
+c
+Business-to-consumer companies are more likely to emphasize a ________ promotion strategy, while business-to-business companies are more likely to emphasize a ________ promotion strategy.
+a. pull; push
+b. push; pull
+c. pulse; pull
+d. continuity; pulse
+e. pulse; continuity
+a
+Which type of research would be best suited for identifying which demographic groups prefer diet soft drinks and why they have this preference?
+a. Causal
+b. Experimental
+c. focus group
+d. Survey
+e. Descriptive
+e
+A conventional distribution channel consists of one or more ________ producers, wholesalers, and retailers.
+a. product-related
+b. independent
+c. contract
+d. estranged
+e. merchant
+B
+Blockbuster offers DVD rentals through its Total Access online rental service and through its bricks-and-mortar stores. This is an example of a(n)________.
+a. contractual VMS
+b. administered VMS
+c. horizontal marketing system
+d. conventional distribution channel
+e. multichannel distribution system
+e
+When Pepsi came out with Pepsi Blue and priced it at half price to attract buyers, Pepsi was using ________.
+a. market-skimming pricing
+b. market-penetration pricing
+c. new-product pricing
+d. discount pricing
+e. value-added pricing
+B
+Marketers should understand that a society's core beliefs and values have a high degree of ________.
+a. persistence
+b. flexibility
+c. similarity
+d. ethnocentrism
+e. conformity
+a
+Johnson Business Solutions, Inc. maintains one sales force for its copy machines and a separate sales force for its computer systems. Johnson Business Solutions utilizes a(n) ________ structure.
+a.
+product sales force
+b.
+customer sales force
+c.
+territorial sales force
+d.
+integrated sales force
+e.
+complex sales force
+a
+A shoe company uses ads featuring the members of a country music band with the hope that the band's fans will see them wearing the company's shoes and want to wear the same shoes. The shoe company is hoping that fans of the band view the band as a ________.
+a. membership group
+b. reference group
+c. status symbol
+d. subculture
+e. lifestyle
+b
+Which stage in the PLC normally lasts longest and poses strong challenges to the marketing managers?
+a. growth
+b. decline
+c. maturity
+d. phase-in
+e. adoption
+c
+At Deck Decor, a manufacturer of outdoor furniture and accessories, the marketing and sales force objectives are to grow relationships with existing customers and to acquire new business. Which of the following compensation plans should management establish to encourage the sales force to pursue both of these objectives?
+a.
+straight salary
+b.
+straight commission
+c.
+salary plus bonus for new accounts
+d.
+commission plus bonus for new accounts
+e.
+salary plus commission plus bonus for new accounts
+e
+The sales force at Messimer Computing recently began telemarketing and Web selling. How will telemarketing and Web selling most likely benefit Messimer Computing?
+a. The inside sales force of Messimer will receive better compensation than the outside sales force.
+b. Messimer sales reps will need to spend more face-to-face time with large, high-value customers.
+c. Messimer sales reps will be able to service hard-to-reach customers more effectively.
+d. Messimer sales reps will be required to telecommute rather than work in a centrally located office.
+e. The outside sales force of Messimer will be freed up to work more with the marketing department.
+C
+An invitation to go skiing for the weekend forced Donna to look at her current wardrobe. She decided she needed a much warmer coat. Donna was in which stage of the purchase decision?
+a. product evaluation
+b. situational analysis
+c. need recognition
+d. problem screening
+e. information search
+C
+Leona purchased two bottles of wine from vineyards in Australia. When asked her opinion of the wine, she said the burgundy wine tasted like alcoholic grape juice, but the Chablis had a crisp taste that she really enjoyed. These statements were made during the ________ stage of the purchase decision.
+a. information search
+b. situational analysis
+c. alternative evaluation
+d. purchase decision
+e. postpurchase behavior
+E
+Which method of setting an advertising budget is based on analyzing competitors' spending?
+a. percentage-of-sales method
+b. affordable method
+c. competitive-parity method
+d. objective-and-task method
+e. regression method
+c
+Some companies have adopted a(n) ________ strategy, offering just the right combination of quality and good service at a fair price.
+a. value-based pricing
+b. good-value pricing
+c. cost-plus pricing
+d. low-price image
+e. elastic-pricing
+B
+P&G introduced its Duncan Hines ready-to-spread frosting in a small geographic area. When General Foods became aware of the product, it rushed to market its own Betty Crocker ready-to-spread frosting, which eclipsed the Duncan Hines product introduction. General Foods was able to enter the ________ stage of the new-product development process before P&G could.
+a. commercialization
+b. business analysis
+c. idea generation
+d. screening
+e. product concept development
+a
+What is a major drawback of probability sampling?
+a. It can be time consuming.
+b. The sampling error cannot be measured.
+c. The most difficult population from which to obtain information is chosen.
+d. Everyone has an equal chance of selection.
+e. Marketers must rely on the judgment of the researcher in respondent selection.
+a
+A newspaper article announced that VoiceStream Wireless, the nation's sixth-largest wireless carrier, was changing its name to T-Mobile and that to begin the makeover process it had replaced spokesperson Jamie Lee Curtis with Catherine Zeta-Jones. Of which element of the promotion mix is this an example?
+a. sales promotion
+b. Advertising
+c. public relations
+d. personal selling
+e. Product
+c
+The decision to use a cleaning genie to communicate the strength and power of Mr. Clean cleaning liquid is representative of the ________ process of the communication model.
+a. Sourcing
+b. Encoding
+c. Signifying
+d. Decoding
+e. Messaging
+b
+When Positive Image, Inc. caters to clothing, cosmetics, and toiletries markets, it most likely uses which type of segmentation?
+a. readiness
+b. gender
+c. behavior
+d. occasions
+e. geographic
+b
+Juana looked at her September issue of O magazine and did not see anything of interest. After her mother was diagnosed with bipolar disorder, she found the issue extremely interesting because it offered advice on how to help people who are suffering from this problem. The issue became quite interesting to Juana due to ________.
+a. subliminal messaging
+b. status factors
+c. selective attention
+d. shifting self-concept
+e. unconscious motivations
+c
+Branded Coca-Cola cups have been prominently featured on episodes of American Idol. This is an example of ________.
+a. advertising
+b. sponsorship
+c. consumer-generated messages
+d. sales promotion
+e. product placement
+e
+In a ________, new products and marketing tactics are tested online in a virtual shopping environment.
+a. controlled test market
+b. simulated test market
+c. standard test market
+d. random test market
+e. single-city test market
+b
+The EPA has mandated that, in order to reduce local pollution, your printing plant switch from oil based to water-based inks. This will require entirely new printing presses and a new printing plate technology. After carefully searching through numerous manufacturers' equipment descriptions and gathering opinions from all relevant parties related to the work, your printing plant's buying center will be ready to make this ________ purchase.
+a. modified rebuy
+b. new task
+c. straight rebuy
+d. straight task
+e. situational analysis
+b
+________ uses buyers' perceptions of what a product is worth, not the seller's cost, as the key to pricing.
+a. Customer value-based pricing
+b. Cost-based pricing
+c. Variable cost
+d. Price elasticity
+e. Product image
+a
+Atlas Steel Corporation lacks the confidence, capital, and capacity to launch its new steel product into full national or international distribution. Test market results look promising, so what should be management's next step?
+a. retest the product in additional markets
+b. develop a planned market rollout over time
+c. secure a loan to provide confidence, capital, and capacity
+d. seek the help of a nationally known consultant
+e. develop a prototype
+b
+________ are consumer products that the consumer either does not know about or knows about but does not normally think about buying. These products require a lot of advertising, personal selling, and other marketing efforts.
+a. Specialty products
+b. Line extensions
+c. Unsought products
+d. Shopping products
+e. Staples
+c
+Companies that use a customer sales force structure organize their salespeople by ________.
+a. Product
+b. Territory
+c. Industry
+d. demand
+e. hierarchy
+C ( Câu này trong chapter 16)
+A(n) ________ is a name, term, sign, symbol, design, or a combination of these, that identifies the maker or seller of a product or service.
+a. service
+b. brand
+c. co-branding
+d. internal marketing
+e. external marketing
+b
+When Whallans Gift Card Shop offers a price reduction to customers who buy Christmas cards the week after Christmas, Whallans is giving a(n) ________ discount.
+a. functional
+b. seasonal
+c. annual
+d. allowance
+e. credit
+b
+A company that wants to emphasize the premium quality of its product and enhance the product's allure would be most likely to position its product on ________.
+a. high prices
+b. nonprice qualities
+c. low prices
+d. value prices
+e. target costing
+b (đáp án chuẩn)
+Yellow Freight and Jimmy's Warehouse help distribute the frozen foods your company sells. The two businesses are examples of ________.
+a. resellers
+b. marketing services agencies
+c. marketing intermediaries
+d. physical distribution firms
+e. geographic segments
+d
+Which of the following best represents the options a company has when a product is declining?
+a. maintain or harvest the product
+b. harvest or drop the product
+c. maintain, harvest, or drop the product
+d. maintain or pioneer the product
+e. pioneer, harvest, or maintain the product
+c
+Which of the following refers to the prices that a buyer carries in his or her mind and refers to when looking at a given product?
+a. target prices
+b. reference prices
+c. promotional prices
+d. geographical prices
+e. dynamic prices
+B
+Product placement in television programs and movies is an example of ________.
+
+A. branded entertainment
+B. advertainment
+C. direct marketing
+D. message execution
+E. sales promotion
+A
+In the aftermath of the Great Recession, consumers have become ________.
+a. more value conscious
+b. less value conscious
+c. more interested in prestige pricing
+d. less interested in price cutting
+e. more loyal to prestigious products
+A
+________ describes changes in an individual's behavior arising from experience.
+a. Lifestyle
+b. Learning
+c. Perception
+d. Cognitive dissonance
+e. Attitude shift
+B
+________ contributes to a product's usefulness as well as to its looks.
+a. Style
+b. Design
+c. Conformance quality
+d. Brand
+e. Functionality
+B
+What are the two dimensions of product quality?
+a. consistency and level
+b. performance and resistance
+c. design and innovation
+d. conformance and style
+e. feature and design
+a (đáp án chuẩn)
+A ________ consists of the actual users of products, those who control buying information, those who influence the decisions, those who do the actual buying, and those who make the buying decisions.
+a. supplier development team
+b. cross functional team
+c. buying center
+d. quality management center
+e. partnership management team
+C
+A car maker's strategy of advertising a basic vehicle model with few conveniences and comforts at a low price to entice buyers and then convincing customers to buy higher-priced models with more amenities is an example of which of the following?
+a. product line pricing
+b. optional product pricing
+c. captive product pricing
+d. by-product pricing
+e. cost-based pricing
+B
+If a company wants to understand the cause-and-effect relationship between advertising spend and sales, it should conduct:
+A. Descriptive research
+B. Exploratory research
+C. Causal research
+D. Ethnographic research
+C
+Using concentrated marketing, the marketer goes after a ________ share of ________.
+a. small; a small market
+b. small; a large market
+c. large; one or a few niches
+d. large; the mass market
+e. moderate; local
+C
+Which product will most likely be intensively distributed?
+A) Olympus digital cameras
+B) BMW cars
+C) Guess blue jeans
+D) Coca-Cola.
+E) Nike running shoes.
+D
+Customer-driven marketing usually works well when ________ and when customers ________.
+a. a clear need exists; are difficult to identify.
+b. customers know what they want.
+c. a firm can deliver the goods desired;are thoroughly researched
+d. a clear need exists , know what they want.
+e. a need exists, don't know what they want.
+D
+The marketer wants to understand how the stimuli are changed into responses inside the consumer's ________, which has two parts: the buyer's characteristics that influence how he or she perceives and reacts to the stimuli and the buyer's decision process itself.
+A) culture
+B) black box
+C) belief
+D) lifestyle
+E) social class.
+B
+To differentiate themselves, many companies go beyond offering products and services; they are also developing and delivering customer ________.
+a. Feedback
+b. Experiences
+c. Brands
+d. product lines
+e. Events
+b
+We define a ________ as anything that can be offered to a market for attention, acquisition, use, or consumption and that might satisfy a want or need.
+a. private brand
+b. service variability
+c. Service
+d. Product
+e. service encounter
+d
+Business buying behavior refers to the buying behavior of organizations that buy all of the following EXCEPT ________.
+a. products for use in production of other products
+b. services for use in production of other services
+c. products purchased to resell to others
+d. products purchased to rent to others
+e. products purchased for personal consumption
+e
+Which of the following is an external factor that affects pricing decisions?
+A. the salaries of production management
+B. demand
+C. the salaries of finance management
+D. funds expensed to clean production equipment
+E. All of these
+B
+Which of the following is NOT a potential reason for a new product to fail?
+a. an underestimated market size
+b. a poorly designed product
+c. an incorrectly positioned product
+d. higher than anticipated costs of product development
+e. ineffective advertising
+a
+When a business market segment is large or profitable enough to serve, it is termed ________.
+a. measurable
+b. accessible
+c. substantial
+d. actionable
+e. differentiable
+c
+The final step in the marketing process is ________.
+a. capturing value from customers
+b. creating customer loyalty
+c. creating customer lifetime value
+d. understanding the marketplace
+e. designing a customer-driven marketing strategy
+a
+A person's buying choices are influenced by four major psychological factors. Which is NOT one of these factors?
+a. motivation
+b. perception
+c. alternative evaluation
+d. learning
+e. beliefs and attitudes
+c
+All of the following are disadvantages of the team selling approach EXCEPT which one?
+a.
+Selling teams can overwhelm customers.
+b.
+Many salespeople are unaccustomed to working with others.
+c.
+Selling teams decrease costs.
+d.
+Individual contributions and compensations can be difficult to assess.
+e.
+Most salespeople are trained to excel in individual performance.
+c
+It's What's Hip, a chain of 18 music and CD stores, has discovered that carrying a weak product during the decline stage of the PLC can be very costly to a firm, and not just in profit terms. Which one of these is NOT likely to be one of those costs?
+a. takes up much of management's time
+b. frequent price and inventory adjustment
+c. requires advertising and sales force attention
+d. requires too much focus on new-product development
+e. negatively affects the company's reputation
+d
+Your assistant wants to use secondary data exclusively for the current research project. You advise him that the use of secondary data has some potential problems. Which of the following is NOT one of them?
+a. It may not exist.
+b. It may not be relevant.
+c. It is generally more expensive to obtain than primary data.
+d. It may not be current.
+e. It may not be impartial.
+C
+Many marketers are now using new interactive technologies, such as Frito-Lay's online virtual convenience store, to reduce the cost of ________.
+a. concept development
+b. concept testing
+c. commercialization
+d. product development
+e. test marketing
+E
+Sometimes a producer chooses only a few dealers in a territory to distribute its products or services. Generally these dealers are given a right to ________ distribution.
+a. exclusive
+b. selective
+c. intensive
+d. administered
+e. corporate
+a
+Logos, uniforms, brochures, and company trucks are all examples of ________ that can be used to help a company create a visual image for the public.
+a. direct marketing
+b. social marketing
+c. public service activities
+d. corporate identity materials
+e. buzz marketing materials
+d
+A product is a key element in the overall ________.
+a. market offering
+b. brand equity
+c. brand extension
+d. co-branding
+e. value chain
+a
+________ is the systematic collection and analysis of publicly available information about consumers, competitors, and developments in the marketing environment.
+a. Marketing data
+b. Competitive marketing intelligence
+c. Sales management
+d. Customer intelligence
+e. Value chain management
+b
+A society's basic values, perceptions, preferences, and behaviors are all part of its ________ environment.
+a. social
+b. cultural
+c. political
+d. cultural economic
+e. natural
+b
+In the communication process, an actual HP printer/fax machine advertisement is called ________.
+
+A. Encoding
+B. Decoding
+C. Noise
+D. The message
+E. The medium
+E
+Which of the following is the best example of a direct channel?
+a. J&L Manufacturing Company sells drapery hardware to The Home Depot's Design Center, and the Design Center then sells it to consumers.
+b. Family Dollar Store sells modeling clay to school-age children.
+c. A wholesaler sells candy to convenience stores, who then sell it to store patrons.
+d. Farmer Mintz sells corn to the Hughes household, who will eat it for supper.
+e. A farmer in Columbia sells flowers to an international broker, who makes sure the flowers reach consumers in the United States.
+d
+When customers don't know what they want or don't even know what's possible, the most effective strategy is ________ marketing.
+a. customer-driven
+b. customer-driving
+c. societal
+d. production
+e. product
+b
+When customers have a low involvement in a purchase but perceive significant brand differences, they will most likely engage in ________.
+A) complex buying behavior
+B) dissonance-reducing buying behavior
+C) habitual buying behavior
+D) variety-seeking buying behavior
+E) brand conviction buying behavior.
+D
+P&G surveyed the market and identified an unserved segment of the electric toothbrush market. Using these results, P&G created Spinbrush. The unorthodox order of this marketing mix decision is an example of ________.
+a. competition-based pricing
+b. cost-plus pricing
+c. target costing
+d. value-based pricing
+e. penetration pricing
+c
+Product planners must design the actual product and find ways to augment it in order to create a bundle of:
+
+A. Benefits
+B. Core Satisfactions
+C. Packaged Values
+D. Brand Values
+A
+In order to form a consistent and effective integrated marketing program, price decisions should be coordinated with each of the following EXCEPT ________.
+
+A. product design
+B. distribution
+C. competitors' prices
+D. promotion decisions
+E. marketing objectives
+C
+Product planners must design the actual product and find ways to augment it in order to create the bundle of ________ that will provide the most satisfying customer experience.
+a. core satisfactions
+b. packaged values
+c. brand values
+d. benefits
+e. characteristics
+d
+Which of the following is NOT a type of factor in a company's macroenvironment?
+a. demographic
+b. economic
+c. technological
+d. competitive
+e. political
+d
+Which of the following is an example of horizontal channel conflict?
+a. managers of two separate Holiday Inns disagreeing over what constitutes poor service
+b. United Airlines competing with Northwest Airlines for customers
+c. disgruntled factory workers complaining about a small pay raise
+d. the BMW dealership in Fort Wayne complaining that the BMW dealership in Indianapolis is situated too close
+e. A and D
+E
+In the introduction stage of the product life cycle, a combination of ________ is best for producing high awareness.
+a. indirect marketing and personal selling
+b. advertising and public relations
+c. public relations and personal selling
+d. personal selling and direct marketing
+e. direct marketing and sales promotion
+b
+Innovations is a producer of electronic circuits that power a variety of technological devices produced by other companies. Innovations sells its products to ____ markets.
+A. business
+B. government
+C. consumer
+D. internal
+E. financial
+A
+_____ from marketing communications may suggest changes in the promotion program or in the product offer itself.
+A. Encoding
+B. Decoding
+C. Feedback
+D. Noise
+E. Shelter
+C
+Which of the following statements about break-even analysis is true?
+A. It is used to determine how much production experience a company must have to achieve desired efficiencies.
+B. It is a technique used to calculate fixed costs.
+C. It determines the amount of retained earnings a company will have during an accounting period.
+D. It is a technique marketers use to examine the relationship between supply and demand.
+E. It is calculated using variable costs, the unit price, and fixed costs.
+E
+Which type of vertical marketing system (VMS) gives an organization more control over both production and resale of its products, while at the same time increasing the organization's capital investment and its fixed costs?
+A. administered
+B. contractual
+C. conventional
+D. corporate
+E. horizontal
+D
+With a higher volume of product, most companies can expect to ____.
+A. gain economies of scale
+B. become less efficient
+C. see fixed costs increase
+D. have a straight, horizontal learning curve
+E. find competitors using the experience curve strategically
+A
+Which promotional tool is most effective in building up buyers' preferences, convictions, and, most importantly, actions?
+A. mass-market advertising
+B. personal selling
+C. segmented advertising
+D. sales promotion
+E. public relations
+B
+Secret Sneaker will give anyone $10 for an old pair of sneakers, regardless of condition, when that person purchases a new pair of sneakers. The end result is essentially reducing the price of the new sneakers by $10. What is this type of price adjustment called?
+
+A. functional discount
+
+B. captive product
+
+C. seasonal discount
+
+D. trade-in allowance
+
+E. by-product
+D
+Consumers usually perceive higher-priced products as ________.
+a. being in the maturity stage of the product life cycle
+b. having a higher quality
+c. having low profit margins
+d. popular brands
+e. being in the introductory stage of the product life cycle
+b
+Which of the following consumer promotion tools is the MOST costly way for companies to introduce a new product?
+A. samples
+B. coupons
+C. premiums
+D. cash refunds
+E. price packs
+A
+The recent rash of business scandals and increased concerns about the environment have created fresh interest in the issues of ________ and ________.
+a. ethics; promotion responsibility
+b. ethics; social responsibility
+c. finances; employee discrimination
+d. management ethics; insider trading
+e. promotion; pricing
+B
+Railroads were once operated based on the thinking that users wanted trains rather than transportation, overlooking the challenge of other modes of transportation. This reflects the ________ concept.
+a. product
+b. production
+c. selling
+d. marketing
+e. societal marketing
+A
+Which of the following best explains why consumers have greater power and control in today's marketplace?
+a. The production concept and competition have lowered prices.
+b. Implementation of the product concept has resulted in continually improving products.
+c. Customer-driven marketing creates products and services that meet customers' future needs.
+d. More companies are implementing societal marketing and weighing long-term costs and benefits.
+e. Through new communication technologies, customers have more access to information and more methods of sharing their opinions with other customers.
+e
+A company or market offer can be differentiated along the lines of product, image, services, channels, or ____.
+A. labeling
+B. packaging
+C. people
+D. customer service
+E. reputation
+C
+Many companies now use a combination of phone, e-mail, fax, Internet, and other technologies to provide ____.
+A. labeling information
+B. brand equity
+C. support services
+D. packaging advantages
+E. product mixes
+C
+When the Twin Six Cafe provides gourmet menu options to its customers, as well as impeccable service-which even allows customers to hand-select their own cuts of meat - ________ is/are evident.
+a. only an actual product
+b. only an augmented product
+c. only a core benefit
+d. both a core benefit and an actual product
+e. a core benefit, an actual product, and an augmented product
+e
+Proud Pets, a producer of clothing and accessories for pets, has recently partnered with a regional chain of pet stores. Which of the following would Proud Pets be LEAST likely to expect from its new channel member?
+a. promoting its products through advertising
+b. assembling and packaging its products for final sale
+c. distributing relevant marketing research information
+d. identifying raw materials and other productive inputs
+e. negotiating on its products' prices
+d
+________ pricing involves setting prices based on the costs for producing, distributing, and selling the product plus a fair rate of return for the company's efforts and risks.
+a. Value-based
+b. Fixed cost
+c. Cost-based
+d. Variable
+e. Skimming
+c
+What is one of the primary goals of reminder advertising?
+a. maintain customer relationships
+b. build brand preference
+c. correct false impressions
+d. inform the market of a price change
+e. restore company image
+a
+A customer's lifestyle can be measured by using the AIO dimensions. What does AIO stand for?
+A. Activities, Interests, Opinions
+B. Achievement, Involvement, Organizations
+C. Accommodation, Investment, Orientation
+D. Acknowledgements, Interests, Observations
+E. Adoptions, Interests, Occupations
+A
+The demand for many business goods and services tends to change more, and more quickly, than the demand for consumer goods and services does. This is referred to as ____ demand.
+A. fluctuating
+B. inelastic
+C. derived
+D. elastic
+E. supplier
+A
+What are the four steps, in order, to designing a customer-driven marketing strategy?
+a. market segmentation, differentiation, positioning, and targeting
+b. positioning, market segmentation, mass marketing, and targeting
+c. market segmentation, targeting, differentiation, and positioning
+d. market alignment, market segmentation, differentiation, and market positioning
+e. market recognition, market preference, market targeting, and market insistence
+c
+Business legislation has been created for three basic reasons: to protect companies from each other, to protect consumers, and to ________.
+a. protect the interests of society
+b. regulate prices
+c. increase world trade
+d. regulate monopolies
+e. promote social responsibility
+a
+Another term for the supply chain that suggests a sense and respond view of the market is ________.
+a. supply and demand chain
+b. demand chain
+c. channel of distribution
+d. distribution channel
+e. physical distribution
+B
+When a company lengthens its product line beyond its current range, it is ________.
+a. product line filling
+b. product line stretching
+c. product mixing
+d. increasing product depth
+e. building product equity
+b
+In marketing terms, we say that the number of intermediary levels indicates the ________ of a channel.
+a. depth
+b. complexity
+c. involvement
+d. length
+e. width
+d
+Price fixing, predatory pricing, retail price maintenance, and deceptive pricing are examples of ________.
+a. common pricing policies
+b. major public policy issues in pricing
+c. ethical pricing strategies
+d. pricing policies used mostly in the wholesale sector
+e. pricing used mostly in the retail sector
+b
+The world's largest buyer of products and services is ________.
+a. the Department of Veteran Affairs
+b. the Chinese government
+c. the U.S. government
+d. the General Services Administration
+e. the Russian government
+c
+Which major promotion category makes use of catalogs, telephone marketing, kiosks, and the Internet?
+a. sales promotion
+b. direct marketing
+c. Publicity
+d. public relations
+e. Advertising
+b
+Price is the only element in the marketing mix that:
+A. Builds customer relationships
+B. Creates customer value
+C. Generates revenue
+D. All answers are correct
+C
+Price is the only element in the marketing mix that produces ________.
+a. Revenue
+b. variable costs
+c. Expenses
+d. outfixed costs
+e. Stability
+A
+The New Age Gallery has three admission prices for students, adults, and seniors. All three groups are entitled to the same services. This form of pricing is called ________.
+a. time pricing
+b. location pricing
+c. customer-segmented pricing
+d. revenue management pricing
+e. generational pricing
+c
+Kathy Champe, a public relations specialist for a regional chain of pharmacies, regularly contacts members of the local and state-wide media with information about community events and charity fundraisers sponsored by her company. This is an example of the _______ function of public relations.
+A. press relations
+B. product publicity
+C. public affairs
+D. lobbying
+E. development
+A
+Suave ran ads featuring a woman with beautiful hair questioning "Suave or Matrix? Can You Tell?" This is an example of __________
+A. informative advertising
+B. reminder advertising
+C. comparative advertising
+D. persuasive advertising
+E. buzz marketing
+C
+Which message execution style depicts average people using a product in an everyday setting?
+a. lifestyle
+b. scientific evidence
+c. slice of life
+d. personality symbol
+e. testimonial evidence
+C (Nếu hỏi: Which message execution style focuses on the company's skill and knowledge in making the product? => technical expertise)
+Morrill Motors splits the United States into 10 sales regions. Within each of those regions, the company maintains two sales teamsone for existing customers and one for prospects. What type of sales force structure does Morrill Motors use?
+a. territorial
+b. product
+c. customer
+d. complex
+e. workload
+C
+________ is a measure of the percentage of people in the target market who are exposed to the ad campaign during a given period of time.
+a. Reach
+b. Qualitative value
+c. Format
+d. Premium
+e. Frequency
+A
+Which marketing orientation calls for aggressive promotional efforts and focuses on generating transactions to obtain profitable sales?
+a. production concept
+b. marketing concept
+c. selling concept
+d. product concept
+e. societal marketing concept
+C
+Blake is in the process of buying a new car. He is highly involved in the purchase and perceives significant differences among his three favorite models. Blake's next step is most likely to be ________.
+a. postpurchase behaviour
+b. alternative evaluation
+c. opinion leadership
+d. cognitive dissonance
+e. purchase decision
+B
+Currently, Diego Calabresa is employed by a firm that conducts marketing research and creates ads for other companies that target and promote their products to the right markets. Who is Diego's employer?
+a. financial intermediaries
+b. physical distribution firms
+c. marketing service agency
+d. resellers
+e. a green marketer
+c
+To a producer of goods, a greater number of channel levels means ________ and greater channel complexity.
+a. less distance between producer and end consumer
+b. less control
+c. fewer potential ideas
+d. higher taxes
+e. fewer channel partners
+B
+There are many factors considered in government buying, but ________ is typically the most important.
+a. price
+b. public relations
+c. advertising
+d. personal selling
+e. packaging
+A
+________ tend to be straightforward outlines of benefits and positioning points that the advertiser wants to stress.
+a. Promotion mix plans
+b. Message strategy statements
+c. Creative concept strategies
+d. Big idea statements
+e. Branded entertainment plans
+b
+Hewlett-Packard and Dell buy Intel microprocessor chips because consumers buy personal computers. This demonstrates an economic principle called ________.
+a. elastic demand
+b. fluctuating demand
+c. derived demand
+d. joint demand
+e. market demand
+C
+Pat thought he had received the best deal on his new car. Shortly after the purchase, Pat started to notice certain disadvantages of his new car as he learned more about other cars available. Pat is experiencing ________.
+a. postpurchase culture
+b. selective perception
+c. postpurchase dissonance
+d. purchase decision
+e. information evaluation
+C
+Advertisements built around dream themes use which type of execution style?
+a. mood or image
+b. musical
+c. fantasy
+d. lifestyle
+e. personality symbol
+C
+A manufacturer of a variety of technological devices asked its marketing department to develop inexpensive methods of building and maintaining brand awareness and excitement. The marketing department then recruited consumers who were early adopters of technological devices to spread the word about the company's new products. This is an example of ________.
+a. public service activities
+b. nonpersonal marketing
+c. buzz marketing
+d. sales promotion
+e. direct marketing
+C
+Which of the following CANNOT be described using the PLC concept?
+a. product class
+b. product form
+c. product image
+d. brand
+e. styles
+C
+As You Like It, Inc. customizes its offers to each individual consumer. This practice of tailoring products and marketing programs to suit the tastes of specific individuals and locations is referred to as ________ marketing.
+a. niche
+b. mass
+c. differentiated
+d. undifferentiated
+e. micro
+e
+The relationship between the consumer's expectations and the product's ________ determines whether the buyer is satisfied or dissatisfied with a purchase.
+a. perceived performance
+b. brand personality
+c. recognition
+d. consumer market
+e. service quality
+A
+When compared to consumer markets, business markets are ________.
+a. approximately the same
+b. smaller
+c. huge
+d. somewhat larger
+e. less complex
+c
+China and India each contain more than one billion people. However, companies can access only a small percentage of these potential markets due to ________.
+a. inadequate distribution systems
+b. indifference toward Western products
+c. high regional taxes
+d. the religious caste system
+e. insurmountable language barriers
+a
+Commissions or bonuses that a salesperson receives from a company are categorized as the ________ of a compensation plan.
+a.
+base salary
+b.
+fixed amount
+c.
+variable amount
+d.
+fringe benefit
+e.
+pension component
+c
+"I love New York" is an example of ________.
+a. corporate image advertising
+b. person marketing
+c. organization marketing
+d. social advertising
+e. place marketing
+e
+When ZIBA designers looking for ideas on how to craft a shower-cleaning tool spent 10 days in people's homes, watching consumers wash shower stalls, they were conducting ________ research.
+A) survey
+B) experimental
+C) secondary
+D) ethnographic
+E) personal.
+D
+All of the institutions in a channel are connected by flows, including physical flow, flow of ownership, payment flow, information flow, and ________ flow.
+A) promotion
+B) acquisition
+C) customer
+D) return product
+E) by-product.
+A
+Which of the following is NOT a recommended method for companies to tap into their customers as sources for new-product ideas?
+A) analyzing customer complaints and questions
+B) relying heavily on customers to know what types of technical products they need
+C) working alongside customers to get ideas and suggestions
+D) turning customers into cocreators
+E) putting customer-created products on the market.
+B
+Cheap Heaps Auto specializes in lower quality vehicles, with a few dents, priced a great deal lower than other used cars. Cheap Heaps has chosen to position their products with a ________ strategy.
+A) more-for-the same
+B) more-for-less
+C) same-for-less
+D) less-for-much-less
+E) more for more.
+D
+_____ consists of activities undertaken to create, maintain, or change the attitudes and behavior of target consumers toward an organization.
+A) Person marketing
+B) Organization marketing
+C) Internal marketing
+D) Service variability
+E) Intelligence marketing
+B
+Toward the end of the fiscal year, the owner of a small company came back from lunch concerned because he had learned that a business targeting the same customers as his was planning on spending $150,000 on promotion. As soon as he arrived at the office, he called his financial manager and said, "I want to budget $150,000 for next year's promotion." Which method of promotional budgeting did the owner want to use?
+A) the objective-and-task method
+B) the percentage-of-sales method
+C) the competitive-parity method
+D) the bottom-up method
+E) the pull-push method.
+C
+When determining the number of channel members to use at each level, three strategies are available: intensive, exclusive, and ________ distribution.
+a. multichannel
+b. selective
+c. international
+d. direct
+e. extensive
+b
+________ consists of strong short-term incentives that invite and reward quick responses from customers.
+a. A patronage reward
+b. A segmented promotion
+c. Advertising
+d. Sales promotion
+e. Publicity
+d
+When nonprofit organizations need financial or volunteer support, they often turn to public relations experts to help them in the area of ________.
+a. public affairs
+b. press relations
+c. investor relations
+d. development
+e. lobbying
+d
+Lobbying, or building and maintaining relations with legislators and government officials to influence legislation and regulation, is part of ________.
+a. direct marketing
+b. press relations
+c. press agencies
+d. public relations
+e. sales promotion
+D
+Which of the following statements about buying centers is true?
+a. The buying center is like a standing committee.
+b. The buying center roles are specified on the organizational chart.
+c. The typical buying center has five employees, one to assume each of the buying center's roles.
+d. An individual's role in the buying center does not change.
+e. The buying center may involve informal participants who are not obvious to sellers.
+e
+Which of the following statements is NOT true regarding information collected by marketers?
+A) Managers lack information of the right kind.
+B) Most managers do not need more information.
+C) Most managers need better information.
+D) Many managers are burdened by data overload.
+E) Managers have the right information
+E
+Differentiation is the job of which stage in the market segmentation steps?
+A. Select target market segmentation
+B. Research target market segmentation
+C. Evaluate target market segmentation results
+D. Determine the total market
+A
+Which of the following is NOT a core customer value?
+A. The problem-solving benefits the customer seeks.
+B. The actual product with its features, design, brand name, and packaging.
+C. The basic need or want that the product fulfills.
+D. The service and warranties offered with the product.
+B
+Conditions for market segmentation are:
+A. There must be differences in needs between different customer groups
+B. There must be able to measure the size and business efficiency of the market segment
+C. Customer demand in the market segment must be large enough to be profitable
+D. All answers are correct
+D
+Which of the following statements is most correct?
+A. Market segmentation criteria for organizations are the same as for consumers.
+B. Market segmentation criteria for organizations are often simpler than for consumers
+C. Market segmentation criteria for organizations are often more complex than those for consumers
+D. All of the above sentences are wrong
+C
+To measure the ________ of an ad after it has been aired, the advertiser can evaluate how the ad affected consumer recall, product awareness, and preference.
+a. sales effects
+b. profit effects
+c. communication effects
+d. reminder effects
+e. comparative effects
+c
+Audience quality, audience engagement, and editorial quality are all considerations when a media planner ________.
+a. decides on media timing
+b. selects an execution style
+c. selects a media vehicle
+d. evaluates return on investment
+e. measures the communication effects of an advertisement
+c
+Which of the following is a disadvantage of online focus groups?
+a. Participants must be in a central location.
+b. The Internet format can lack the real-world group dynamics of in-person focus groups.
+c. Results take longer to tabulate and analyze.
+d. The cost of online focus groups is greater than that of most other qualitative research methods.
+e. The format of focus groups can be varied.
+b
+P&G sells six brands of laundry detergent in the United States, each designed for one of six laundry segments P&G has identified. Together, these six brands take 62% of market share. Which of the following is a disadvantage of P&G's differentiated marketing strategy?
+a. lost sales that would have been made with an undifferentiated marketing strategy across all segments
+b. lost customer loyalty due to lack of brand loyalty
+c. increased costs for separate marketing plans for each brand
+d. other suppliers controlling pricing
+e. lack of resources to succeed in an attractive segment
+c
+The promotion mix is the company's primary communication activity; the marketing mix must be coordinated for the greatest communication impact. What is NOT included in the entire marketing mix?
+a. Product
+b. Competitor
+c. Price
+d. Place
+e. Promotion
+b
+Which of the following conditions would NOT support the use of a market-penetration pricing strategy?
+A) The market is highly price sensitive.
+B) Production and distribution costs will fall as sales volume increases.
+C) The product's quality and image support a high price.
+D) A low price would help keep out the competition.
+E) A and C.
+C
+ByWay Ventures chose a differentiated marketing strategy. The company had to weigh ________ against ________ when selecting this strategy.
+a. extra research; costs
+b. sales analysis; sales
+c. increased sales; increased costs
+d. geographic segmentation; demographic segmentation
+e. attitudes; perceptions
+C
+As marketing manager for Globe Imports and Exports, you want to start reaping the benefits of a multichannel distribution system. You will likely enjoy all of the following EXCEPT which one?
+a. expanded sales
+b. expanded market coverage
+c. selling at a higher gross margin
+d. opportunities to tailor products and services to the needs of diverse segments
+C
+A company's total marketing communications package consists of a special blend of advertising, sales promotion, public relations, personal selling, and direct-marketing tools that the company uses to communicate customer value and build customer relationships. This is also called ________.
+a. competitive marketing.
+b. integrated marketing
+c. the promotion mix
+d. direct marketing.
+e. target marketing
+C
+Which of the following is a reason why markup pricing is NOT practical?
+A) Sellers earn a fair return on their investment.
+B) By tying the price to cost, sellers simplify pricing.
+C) When all firms in the industry use this pricing method, prices tend to be similar.
+D) This method ignores demand.
+E) With a standard markup, consumers know when they are being overcharged.
+D
+When New Port Shipping uses segmented marketing, it targets several segments and designs separate offers for each one. This approach is called ________ marketing.
+A) undifferentiated
+B) differentiated.
+C) target
+D) individual
+E) niche.
+B
+Which of the following is a reason that a marketer would choose a penetration pricing strategy?
+a. to ensure the company has the ability to increase prices once demand decreases
+b. to focus on the rapid achievement of profit objectives
+c. to appeal to different consumer segments with different levels of price sensitivity
+d. to create markets for highly technical products
+e. to discourage competition from entering the market
+e
+________ are society's relatively permanent and ordered divisions whose members share similar values, interests, and behaviors.
+a. Social classes
+b. Cultures
+c. Reference groups
+d. Subcultures
+e. Lifestyles
+a
+Which of the following is an example of a multichannel distribution system?
+a. Walmart locating to several countries
+b. JC Penney's catalog and retail store sales
+c. Avon's door-to-door distribution
+d. Starbuck's location inside of book stores
+e. a hotel providing guest privileges at a health spa across the street
+b
+Which of the following is an example of a core belief?
+a. Marriage is important.
+b. Americans should display their patriotism.
+c. The comforts of home are more important than entertainment outside of the home.
+d. Extended warranties are never worth the money consumers pay for them.
+e. Professionals should wear business clothes to work.
+a
+Which of the following is an example of consumer-generated marketing?
+a. Toyota's presence in online communities
+b. Nike's Nike Plus running Web site
+c. MasterCard's use of "Priceless" commercials shot by customers
+d. Neiman Marcus's InCircle Rewards program for its best customers
+e. The Lexus Covenant aimed at creating customer delight
+C ( hoặc có thể hỏi là : generated content?)
+Costs that do not vary with production or sales level are referred to as ________.
+A) fixed costs.
+B) variable costs
+C) target costs
+D) total costs
+E) unit costs.
+A
+Berkowitz Piano Company can expand its product line in one of two common ways. Which of the following is one of those ways?
+A) internal marketing
+B) line filling.
+C) product mixing
+D) social marketing
+E) line mixing.
+B
+Gretchen Kabor has formal authority to select the suppliers and arrange terms of purchase for many of the items her firm uses. Her role in the buying center is that of ________.
+a. user
+b. influencer
+c. buyer
+d. decider
+e. gatekeeper
+c
+General Electric's campaign stating, "We bring good things to life" is an example of ________.
+a. personal marketing
+b. corporate image marketing
+c. product quality
+d. product line
+e. social marketing
+b
+Lawyers, accountants, and other professionals typically price by adding a standard markup for profit. This is known as ________.
+a. variable costs
+b. cost-plus pricing
+c. value-based pricing
+d. break-even price
+e. penetration pricing
+b
+One of Dr. Albrecht's dental assistants told the dentist he should buy a machine that would sterilize his tools without using any water because water tends to cause the tools to rust or corrode over time. In terms of the buying center, the dental assistant had the role of ________.
+a. initiator
+b. buyer
+c. gatekeeper
+d. influencer
+e. liaison
+d
+Which group determines a product's position relative to competing products?
+a. manufacturers
+b. wholesalers
+c. retailers
+d. consumers
+e. suppliers
+D
+Value marketing is the strategy of offering consumers ________.
+
+A. high quality at a high price
+B. luxury quality at a high price
+C. lesser quality at a low price
+D. reasonable quality at a fair price
+E. little quality at a low price
+D
+________ are goods offered either free or at low cost as an incentive to buy a product.
+a. Coupons
+b. Premiums
+c. Price packs
+d. Cash refund offers
+e. Point-of-purchase promotions
+B
+Status, empathy, and persuasivenes are all examples of ________ influences on business buyer behavior.
+a. environmental
+b. individual
+c. interpersonal
+d. organizational
+e. cultural
+C ( Nếu là : Policies, procedures, and systems => thì chọn D )
+People tend to interpret new information in a way that will support what they already believe. This is called ________.
+a. selective retention
+b. selective distortion
+c. selective attitude
+d. selective attention
+e. selective perception
+B
+People forget much that they learn. They tend to retain information that supports their attitudes and beliefs. This is called ________.
+a. selective retention
+b. selective distortion
+c. selective attitude
+d. selective attention
+e. selective perception
+A
+Staples Office Supply opened an online store that created competition with many of its dealers. The corporate office created a(n) ________ conflict.
+a. vertical
+b. conventional channel
+c. logistics
+d. horizontal
+e. intermediation
+a
+In target marketing, the issue of social responsibility is not really who is targeted, but rather ________ and for ________.
+a. why; what
+b. how; what
+c. why; how long
+d. where; how long
+e. how; how long
+b
+Mark's Markers, a manufacturer of color markers, has required its dealers to charge a specified retail price for its markers. Mark's is most likely guilty of ________.
+a. price fixing
+b. retail price maintenance
+c. price discrimination
+d. price collusion
+e. unfair price skimming
+B
+In which stage of the PLC will promotional expenditures be especially high in an attempt to create consumer awareness?
+a. growth
+b. product development
+c. maturity
+d. introduction
+e. adoption
+d
+What are the two main types of research instruments used to collect primary data?
+a. surveys and samples
+b. questionnaires and mechanical devices
+c. focus groups and online databases
+d. online panels and experiments
+e. personal interviews and online marketing research
+b
+The receiver assigns meaning to the symbols encoded by a company in its advertisements through a process known as ________.
+a. disencoding
+b. feedback
+c. acknowledgement
+d. decoding
+e. response
+d
+People cannot focus on all of the stimuli that surround them each day. A person's tendency to screen out most of the information to which he is exposed is called ________.
+a. selective retention
+b. selective distortion
+c. selective attitude
+d. selective attention
+e. selective perception
+D
+Of the following, which statement(s) would NOT support a market-skimming policy for a new product?
+a. The product's quality and image support its higher price.
+b. Enough buyers want the products at that price.
+c. Competitors are not able to undercut the high price.
+d. Competitors can enter the market easily.
+d
+In which type of buying situation would a supplier most likely focus on maintaining product and service quality?
+a. straight rebuy
+b. modified rebuy
+c. new task
+d. systems task
+e. solutions task
+A
+ABC Advertising Agency was recently hired to create an advertising campaign for a local water park. Since the park is only open during the spring and summer months, ________ plays a major role in the firm's decision about scheduling advertisements.
+a. media vehicles
+b. continuity
+c. audience quality
+d. audience engagement
+e. media timing
+e
+Which of the following best explains why public relations is often overlooked as a tool for supporting product marketing objectives?
+
+A. Public relations departments are typically large divisions within corporations.
+B. The time and costs associated with public relations can be prohibitive.
+C. Public relations specialists lack the skills necessary to work with marketing experts.
+D. Many public relations professionals see their jobs as communicating, not necessarily brand building.
+E. The public relations department only wants to handle stockholders, employees, and government officials.
+D
+Which of the following best illustrates the concept of customer-perceived value?
+A. A company reducing its production costs
+B. A customer choosing a product based on overall benefits relative to costs
+C. A business increasing its marketing budget
+D. A company focusing on short-term sales promotions
+B
+Ryanair offers free flights to a quarter of its customers and rock-bottom prices to many of its other customers. Ryanair then charges for all extra services, such as baggage handling and in-flight refreshments. Which of the following best describes Ryanair's pricing method? (soạn bởi thủy Tiên nha)
+a. value-added pricing
+b. good-value pricing
+c. cost-plus pricing
+d. high-low pricing
+e. image pricing
+b
+The JC Whitney Company of Chicago offers replacement parts for older Volkswagen Beetles. Parts are often shipped from other locations throughout the United States. However, the company charges for shipping as if every part was shipped from its Chicago headquarters. The company practices ________.
+a. FOB-origin pricing
+b. uniform-delivered pricing
+c. zone pricing
+d. basing-point pricing
+e. none of the above
+D
+If a seller charges ________ than the buyer's perceived value, the company's sales will ________.
+a. more; benefit
+b. more; suffer
+c. less; increase
+d. less; suffer
+e. none of the above
+b
+According to the production concept, consumers will favour products are ________ and ________.
+According to the production concept, consumers will favour products that are ________ and ________.
+
+a. satisfying; quality focused
+b. advertised; affordable
+c. in high demand; hard to find
+d. segmented; convenient
+e. available; affordable
+e
+According to the authors of your text, the ________ concept is a "sense and respond" philosophy rather than a "make and sell" philosophy.
+a. product
+b. production
+c. marketing
+d. retailing
+e. societal marketing
+C
+What is a major advantage of product bundle pricing?
+a. It can promote the sales of products consumers might not otherwise buy.
+b. It allows a company to offset the costs of disposing of by-products.
+c. It combines the benefits of the other pricing strategies.
+d. It creates a brand experience for consumers.
+e. It offers consumers less value for the money.
+a
+The ultimate aim of customer relationship management is to produce ________.
+a. customer equity
+b. market share
+c. sales volume
+d. a reliable database
+e. higher profit margins
+a
+UPS serves both consumer and business markets, but most of its revenues come from its business customers. UPS has become a strategic logistics ally for many of its business customers, going far beyond offering delivery services to offering inventory management, international trade management, and even financing to its commercial customers. This is an example of which of the following differences between the consumer and business markets?
+a. Business purchases involve more buyers.
+b. Buyers and sellers in the business market build close, longterm relationships.
+c. Business markets contain more and larger buyers.
+d. Business buyer demand is derived.
+e. Demand in business markets is inelastic.
+b
+As a manufacturer decreases price, ________ volume increases.
+a. target
+b. break-even
+c. cost-plus pricing
+d. total cost
+e. sales
+E
+In an attempt to set the company apart from its competitors, United Parcel Service has its employees wear brown uniforms and drive brown trucks. What type of public relations tool is UPS using?
+a. buzz marketing
+b. corporate logos
+c. corporate identity materials
+d. product publicity
+e. public service materials
+c
+Companies are doing less ________ and more ________ as a result of an explosion of more focused media that better match today's targeting strategies.
+a. marketing; personal selling
+b. advertising; public relations
+c. narrowcasting; broadcasting
+d. broadcasting; narrowcasting
+e. public relations; advertising
+d
+Business promotion tools are used for all of the following reasons EXCEPT to ________.
+a.
+generate business leads
+b.
+stimulate purchases
+c.
+reward customers
+d.
+motivate salespeople
+e.
+increase manufacturing
+e
+Companies facing the challenge of setting prices for the first time can choose between two broad strategies: market-penetration pricing and ________.
+a. market-level pricing
+b. market-competitive pricing
+c. market-skimming pricing
+d. market-price lining
+e. market-price filling
+C
+In the case of services, captive product pricing is called ________ pricing.
+a. by-product
+b. optional product
+c. two-part
+d. bundle
+e. segmented
+C
+Marathons, concerts, and festivals with corporate sponsors are examples of ________.
+a.
+point-of-purchase promotions
+b.
+business promotions
+c.
+trade promotions
+d.
+event marketing
+e.
+personal selling
+d
+In ________, price is considered along with the other marketing mix variables before the marketing program is set.
+a. value-based pricing
+b. cost-based pricing
+c. variable costs
+d. price elasticity
+e. markup pricing
+a
+________ are those products purchased for further processing or for use in conducting a business.
+a. Unsought products
+b. Specialty products
+c. Shopping products
+d. Industrial products
+e. Accessories
+D
+_____ is the act of obtaining a desired object from someone by offering something in return.
+A. Valuation
+B. Exchange
+C. Bribery
+D. Value creation
+E. Donation
+B
+Marketers can take a(n) ________ by taking aggressive action to affect the publics and forces in their marketing environments.
+a. environmental stance
+b. proactive stance
+c. natural perspective
+d. natural-management perspective
+e. relationship-building perspective
+B
+Fixed costs ____ as the number of units produced increases. (soạn bởi thủy Tiên nha)
+A. decrease
+B. increase
+C. divide in half
+D. remain the same
+E. increase at a diminishing rate
+D ( xem ảnh)
+
+
+        `;
+        /* ============================================================ */
+
+        let data = []; let currentIndex = 0; let mode = 'flash';
+
+        window.onload = function() {
+            const lines = rawData.split('\n').map(l => l.trim()).filter(l => l !== "");
+            let tempQuestions = [];
+            let currentItem = { q: "", opts: [], a: "" };
+
+            lines.forEach(line => {
+                if (/^[A-E]\s?[\.\)]/i.test(line)) {
+                    currentItem.opts.push(line);
+                } else if (line.length === 1 && /^[A-E]$/i.test(line)) {
+                    currentItem.a = line.toUpperCase();
+                    let foundFull = currentItem.opts.find(o => o.toUpperCase().startsWith(currentItem.a));
+                    currentItem.a_full = foundFull || ("Đáp án: " + currentItem.a);
+                    if (currentItem.q && currentItem.opts.length > 0) {
+                        tempQuestions.push({...currentItem});
+                    }
+                    currentItem = { q: "", opts: [], a: "" };
+                } else {
+                    if (currentItem.opts.length === 0) {
+                        currentItem.q += (currentItem.q ? " " : "") + line;
+                    }
+                }
+            });
+
+            data = tempQuestions;
+            if (data.length > 0) render();
+            else alert("Dữ liệu dán vào chưa đúng định dạng!");
+        };
+
+        function setMode(m) {
+            mode = m;
+            document.getElementById('mode-flash').classList.toggle('active-mode', m === 'flash');
+            document.getElementById('mode-quiz').classList.toggle('active-mode', m === 'quiz');
+            render();
+        }
+
+        function render() {
+            const item = data[currentIndex];
+            document.getElementById('progress').innerText = `CÂU ${currentIndex + 1} / ${data.length}`;
+            
+            if (mode === 'flash') {
+                document.getElementById('flash-area').style.display = 'block';
+                document.getElementById('quiz-area').style.display = 'none';
+                document.getElementById('flash-q').innerText = item.q;
+                document.getElementById('flash-a').innerText = item.a_full;
+                document.getElementById('flash-opts-list').innerHTML = item.opts.map(o => `<div class="opt-item">${o}</div>`).join('');
+                document.getElementById('main-card').classList.remove('flipped');
+            } else {
+                document.getElementById('flash-area').style.display = 'none';
+                document.getElementById('quiz-area').style.display = 'block';
+                document.getElementById('quiz-q').innerText = item.q;
+                const qBox = document.getElementById('quiz-opts-box');
+                qBox.innerHTML = '';
+                item.opts.forEach(o => {
+                    const b = document.createElement('button');
+                    b.className = 'quiz-opt-btn';
+                    b.innerText = o;
+                    b.onclick = () => {
+                        if (o.toUpperCase().startsWith(item.a)) b.classList.add('correct');
+                        else {
+                            b.classList.add('wrong');
+                            Array.from(qBox.children).forEach(c => {
+                                if (c.innerText.toUpperCase().startsWith(item.a)) c.classList.add('correct');
+                            });
+                        }
+                    };
+                    qBox.appendChild(b);
+                });
+            }
+        }
+
+        function flipCard() { if (mode === 'flash') document.getElementById('main-card').classList.toggle('flipped'); }
+        function move(step) { currentIndex = (currentIndex + step + data.length) % data.length; render(); }
+        function shuffleData() { data.sort(() => Math.random() - 0.5); currentIndex = 0; render(); alert("Đã trộn ngẫu nhiên!"); }
+    </script>
+</body>
+</html>
