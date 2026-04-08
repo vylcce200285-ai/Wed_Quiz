@@ -6,11 +6,10 @@
     <title>Chuyến Đi Vũng Tàu</title>
     <style>
         :root {
-            /* Tông màu Pastel dịu mắt, giảm chói */
             --primary: #6B9BF2; 
             --secondary: #80D0C7;
-            --bg: #EEF2F5; /* Nền xám xanh nhạt, không dùng trắng tinh */
-            --text: #374151; /* Chữ xám than, giảm tương phản gắt */
+            --bg: #EEF2F5;
+            --text: #374151;
             --card-bg: #ffffff;
             --success: #4ADE80;
             --danger: #F87171;
@@ -43,7 +42,7 @@
             color: white;
             border-bottom-left-radius: 25px;
             border-bottom-right-radius: 25px;
-            box-shadow: 0 4px 15px rgba(107, 155, 242, 0.15); /* Bóng mềm hơn */
+            box-shadow: 0 4px 15px rgba(107, 155, 242, 0.15);
             position: relative;
             z-index: 2;
         }
@@ -55,6 +54,11 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
+        }
+        
+        .header-actions {
+            display: flex;
+            gap: 10px;
         }
 
         .header p { 
@@ -119,12 +123,12 @@
             margin-bottom: 12px;
             display: flex;
             align-items: flex-start;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.04); /* Đổ bóng cực êm */
+            box-shadow: 0 2px 8px rgba(0,0,0,0.04);
             transition: all 0.3s ease;
         }
 
         .task-item.completed {
-            opacity: 0.5; /* Mờ nhiều hơn để giảm nhiễu thị giác */
+            opacity: 0.5;
             background: #F9FAFB;
         }
 
@@ -182,46 +186,64 @@
             color: #9CA3AF;
         }
 
-        /* KHU VỰC ĐỊA CHỈ - CÓ THỂ CLICK ĐỂ COPY */
+        .address-group {
+            display: flex;
+            gap: 8px;
+            margin-top: 8px;
+            align-items: stretch;
+        }
+
         .task-address {
             font-size: 13px;
             color: #4B5563;
             display: inline-flex;
             align-items: center;
             justify-content: space-between;
-            gap: 8px;
             background: #F3F4F6;
             padding: 8px 12px;
             border-radius: 8px;
-            margin-top: 6px;
-            cursor: pointer; /* Báo hiệu có thể bấm */
+            cursor: pointer;
             border: 1px solid transparent;
             transition: 0.2s;
-            max-width: 100%;
-            box-sizing: border-box;
+            flex: 1;
+            min-width: 0;
         }
 
-        .task-address:active {
-            background: #E5E7EB;
-            transform: scale(0.98);
-            border-color: #D1D5DB;
-        }
+        .task-address:active { background: #E5E7EB; transform: scale(0.98); }
 
         .address-text {
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
+            margin-right: 8px;
         }
 
         .copy-icon {
-            font-size: 14px;
+            font-size: 12px;
             background: #E5E7EB;
-            padding: 4px 8px;
+            padding: 4px 6px;
             border-radius: 6px;
             color: #374151;
             font-weight: bold;
             flex-shrink: 0;
         }
+
+        .map-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background: #E0F2FE;
+            color: #0369A1;
+            text-decoration: none;
+            padding: 0 12px;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 600;
+            transition: 0.2s;
+            flex-shrink: 0;
+            cursor: pointer;
+        }
+        .map-btn:active { background: #BAE6FD; transform: scale(0.95); }
 
         .task-actions {
             display: flex;
@@ -243,9 +265,7 @@
             justify-content: center;
             transition: 0.2s;
         }
-        .icon-btn:active {
-            background: #E5E7EB;
-        }
+        .icon-btn:active { background: #E5E7EB; }
 
         .fab {
             position: fixed; 
@@ -268,12 +288,12 @@
         }
         .fab:active { transform: scale(0.92); }
 
-        /* Modal cho Mobile */
+        /* Modal */
         .modal-overlay {
             display: none;
             position: fixed;
             top: 0; left: 0; right: 0; bottom: 0;
-            background: rgba(0,0,0,0.3);
+            background: rgba(0,0,0,0.4);
             backdrop-filter: blur(3px);
             align-items: flex-end; 
             z-index: 10;
@@ -313,6 +333,7 @@
             background: #F9FAFB;
             transition: all 0.2s;
             color: var(--text);
+            font-family: inherit;
         }
         .input-group input:focus {
             outline: none;
@@ -320,62 +341,89 @@
             background: #fff;
         }
 
-        .modal-actions {
-            display: flex;
-            gap: 10px;
-        }
-        .btn {
-            flex: 1; 
-            padding: 14px;
-            border: none;
+        /* --- BỘ CUỘN THỜI GIAN --- */
+        .time-picker-wrapper {
+            background: #F9FAFB;
+            border: 1px solid #E5E7EB;
             border-radius: 12px;
-            font-size: 15px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: 0.2s;
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .time-display {
+            font-size: 22px;
+            font-weight: 700;
+            color: var(--primary);
+            margin-bottom: 10px;
+        }
+
+        .wheels-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 160px;
+            width: 100%;
+            position: relative;
+            overflow: hidden;
+            background: #fff;
+            border-radius: 10px;
+            box-shadow: inset 0 2px 8px rgba(0,0,0,0.02);
+        }
+
+        .wheels-overlay {
+            position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+            background: linear-gradient(180deg, rgba(255,255,255,1) 0%, rgba(255,255,255,0) 30%, rgba(255,255,255,0) 70%, rgba(255,255,255,1) 100%);
+            pointer-events: none; z-index: 2;
+        }
+
+        .wheels-highlight {
+            position: absolute; top: 60px; left: 10px; right: 10px; height: 40px;
+            background: rgba(107, 155, 242, 0.1); border-radius: 8px; pointer-events: none; z-index: 1;
+        }
+
+        .wheel-col {
+            flex: 1; height: 100%; overflow-y: scroll; scroll-snap-type: y mandatory;
+            scrollbar-width: none; scroll-behavior: smooth; text-align: center; z-index: 3;
+        }
+        .wheel-col::-webkit-scrollbar { display: none; } 
+
+        .wheel-item {
+            height: 40px; display: flex; align-items: center; justify-content: center;
+            font-size: 18px; font-weight: 600; color: #9CA3AF; scroll-snap-align: center; transition: 0.2s; user-select: none;
+        }
+        .wheel-item.active { color: #374151; transform: scale(1.1); }
+        .wheel-pad { height: 60px; }
+        .wheel-separator { font-size: 24px; font-weight: bold; color: #4B5563; margin: 0 10px; z-index: 3; }
+
+        .modal-actions { display: flex; gap: 10px; }
+        .btn {
+            flex: 1; padding: 14px; border: none; border-radius: 12px;
+            font-size: 15px; font-weight: 600; cursor: pointer; transition: 0.2s;
         }
         .btn-cancel { background: #F3F4F6; color: #4B5563; }
         .btn-save { background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%); color: white; }
 
         .btn-refresh {
-            background: rgba(255,255,255,0.2);
-            border: none;
-            color: white;
-            font-size: 16px;
-            width: 32px;
-            height: 32px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+            background: rgba(255,255,255,0.2); border: none; color: white; font-size: 16px;
+            width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer;
         }
+        .btn-refresh:active { transform: scale(0.9); }
 
-        /* GIAO DIỆN THÔNG BÁO TOAST KHI COPY */
         .toast {
-            visibility: hidden;
-            min-width: 180px;
-            background-color: #374151; /* Màu xám đậm */
-            color: #fff;
-            text-align: center;
-            border-radius: 20px;
-            padding: 12px 20px;
-            position: fixed;
-            z-index: 1000;
-            left: 50%;
-            bottom: 30px;
-            transform: translateX(-50%);
-            font-size: 14px;
-            font-weight: 500;
-            opacity: 0;
-            transition: opacity 0.3s, bottom 0.3s;
+            visibility: hidden; min-width: 180px; background-color: #374151; color: #fff;
+            text-align: center; border-radius: 20px; padding: 12px 20px; position: fixed;
+            z-index: 1000; left: 50%; bottom: 30px; transform: translateX(-50%);
+            font-size: 14px; font-weight: 500; opacity: 0; transition: opacity 0.3s, bottom 0.3s;
             box-shadow: 0 4px 12px rgba(0,0,0,0.15);
         }
-        .toast.show {
-            visibility: visible;
-            opacity: 1;
-            bottom: 50px;
+        .toast.show { visibility: visible; opacity: 1; bottom: 50px; }
+        
+        .empty-state {
+            text-align: center; color: #9CA3AF; margin-top: 50px; font-size: 15px; padding: 0 20px;
         }
-
+        .empty-state span { font-size: 40px; display: block; margin-bottom: 15px; }
     </style>
 </head>
 <body>
@@ -384,17 +432,19 @@
     <div class="header">
         <h1>
             Vũng Tàu Trip 🌊
-            <button class="btn-refresh" onclick="resetProgress()" title="Khôi phục gốc">🔄</button>
+            <div class="header-actions">
+                <button class="btn-refresh" onclick="openSyncModal()" title="Đồng bộ Lịch iPhone">📅</button>
+                <button class="btn-refresh" onclick="resetProgress()" title="Khôi phục gốc">🔄</button>
+            </div>
         </h1>
-        <p>Lịch trình 3 ngày 2 đêm của chúng tôi </p>
+        <p>Lịch trình tham khảo của chúng tôi</p>
         <div class="progress-container">
             <div class="progress-bar" id="progressBar"></div>
         </div>
         <div class="progress-text" id="progressText">0% Hoàn thành</div>
     </div>
 
-    <div class="schedule-list" id="scheduleList">
-        </div>
+    <div class="schedule-list" id="scheduleList"></div>
 
     <button class="fab" onclick="openModal()">+</button>
 
@@ -403,7 +453,18 @@
             <h3 id="modalTitle">Thêm hoạt động</h3>
             <div class="input-group">
                 <input type="text" id="inputDay" placeholder="Nhóm ngày (VD: Day 1)">
-                <input type="text" id="inputTime" placeholder="Thời gian (VD: 15:00)">
+                
+                <div class="time-picker-wrapper">
+                    <div class="time-display" id="timeDisplay">12:00</div>
+                    <div class="wheels-container">
+                        <div class="wheels-overlay"></div>
+                        <div class="wheels-highlight"></div>
+                        <div class="wheel-col" id="hourWheel"></div>
+                        <div class="wheel-separator">:</div>
+                        <div class="wheel-col" id="minuteWheel"></div>
+                    </div>
+                </div>
+
                 <input type="text" id="inputDesc" placeholder="Làm gì? (VD: Ăn ốc...)">
                 <input type="text" id="inputAddress" placeholder="📍 Địa chỉ (Tùy chọn)...">
             </div>
@@ -414,62 +475,146 @@
         </div>
     </div>
 
+    <div class="modal-overlay" id="syncModal">
+        <div class="modal-content">
+            <h3>Đồng bộ Lịch Điện Thoại</h3>
+            <p style="text-align:center; color:#6B7280; font-size:14px; margin-top:0;">Chọn ngày xuất phát (Day 1) để máy tự động tạo lịch báo thức cho bạn.</p>
+            <div class="input-group">
+                <input type="date" id="tripStartDate">
+            </div>
+            <div class="modal-actions">
+                <button class="btn btn-cancel" onclick="closeSyncModal()">Hủy</button>
+                <button class="btn btn-save" onclick="generateICS()">Tạo Lịch 📅</button>
+            </div>
+        </div>
+    </div>
+
     <div id="toast" class="toast">✅ Đã sao chép địa chỉ!</div>
 </div>
 
 <script>
     const defaultData = [
-        { id: 1, day: "Day 1", time: "Sáng", desc: "Đi từ Cần Thơ qua Phà Cần Giuộc - Cần Giờ", address: "Bến Phà Cần Giờ - Vũng Tàu", done: false },
-        { id: 2, day: "Day 1", time: "Sáng", desc: "Ăn hủ tiếu mực sữa", address: "231 Trần Phú, Vũng Tàu", done: false },
-        { id: 3, day: "Day 1", time: "Trưa", desc: "Ăn bánh khọt dì Hương. Còn thời gian đi Bọt Cafe", address: "84a Hoàng Hoa Thám, Phường 2, Vũng Tàu, ", done: false },
+        { id: 1, day: "Day 1", time: "06:00", desc: "Đi từ Cần Thơ qua Phà Cần Giuộc - Cần Giờ", address: "Bến Phà Cần Giờ - Vũng Tàu", done: false },
+        { id: 2, day: "Day 1", time: "07:30", desc: "Ăn hủ tiếu mực sữa", address: "231 Trần Phú, Vũng Tàu", done: false },
+        { id: 3, day: "Day 1", time: "11:30", desc: "Ăn bánh khọt dì Hương", address: "84a Hoàng Hoa Thám, Phường 2, Vũng Tàu", done: false },
         { id: 4, day: "Day 1", time: "14:00", desc: "Check in Khách Sạn", address: "", done: false },
-        { id: 5, day: "Day 1", time: "17:00", desc: "Đi cafe Oasis rồi đi ăn ốc ở quán Tư Lúa", address: "3 Lý Tự Trọng, Phường 1, Vũng Tàu, ", done: false },
-        
-        { id: 6, day: "Day 2", time: "05:30 - 06:30", desc: "Chụp ảnh Mũi Nghinh Phong", address: "Mũi Nghinh Phong, Vũng Tàu", done: false },
-        { id: 7, day: "Day 2", time: "Trưa", desc: "Đi bảo tàng BR-VT rồi mua bánh bông lan hoặc donut", address: "Bảo tàng Bà Rịa Vũng Tàu", done: false },
+        { id: 5, day: "Day 1", time: "17:00", desc: "Đi cafe Oasis rồi đi ăn ốc", address: "3 Lý Tự Trọng, Phường 1, Vũng Tàu", done: false },
+        { id: 6, day: "Day 2", time: "05:30", desc: "Chụp ảnh Mũi Nghinh Phong", address: "Mũi Nghinh Phong, Vũng Tàu", done: false },
+        { id: 7, day: "Day 2", time: "11:30", desc: "Đi bảo tàng BR-VT", address: "4 Trần Phú, Phường 1, Vũng Tàu", done: false },
         { id: 8, day: "Day 2", time: "16:00", desc: "Ra bãi dâu chụp ảnh", address: "Bãi Dâu, Vũng Tàu", done: false },
-        { id: 9, day: "Day 2", time: "Tối", desc: "Chill ăn uống trong khách sạn hoặc đi chơi", address: "", done: false },
-        
-        { id: 10, day: "Day 3", time: "06:30", desc: "Vào hẻm chụp ảnh tiếp rồi đi ăn sáng", address: "Hẻm 444 Trần Phú, Vũng Tàu", done: false },
-        { id: 11, day: "Day 3", time: "Trưa", desc: "Checkout đi về", address: "", done: false }
+        { id: 9, day: "Day 2", time: "19:00", desc: "Chill ăn uống trong khách sạn", address: "", done: false },
+        { id: 10, day: "Day 3", time: "06:30", desc: "Vào hẻm 444 chụp ảnh", address: "Hẻm 444 Trần Phú, Vũng Tàu", done: false },
+        { id: 11, day: "Day 3", time: "11:30", desc: "Checkout đi về", address: "", done: false }
     ];
 
     let tasks = [];
     let editingId = null;
 
+    // --- LOGIC CHO BỘ CUỘN THỜI GIAN ---
+    const hourWheel = document.getElementById('hourWheel');
+    const minuteWheel = document.getElementById('minuteWheel');
+    const timeDisplay = document.getElementById('timeDisplay');
+    const ITEM_HEIGHT = 40;
+
+    let hHTML = '<div class="wheel-pad"></div>';
+    for(let i=0; i<24; i++) hHTML += `<div class="wheel-item">${i.toString().padStart(2, '0')}</div>`;
+    hHTML += '<div class="wheel-pad"></div>';
+    hourWheel.innerHTML = hHTML;
+
+    let mHTML = '<div class="wheel-pad"></div>';
+    for(let i=0; i<60; i+=5) mHTML += `<div class="wheel-item">${i.toString().padStart(2, '0')}</div>`;
+    mHTML += '<div class="wheel-pad"></div>';
+    minuteWheel.innerHTML = mHTML;
+
+    function handleScroll(wheelEl) {
+        const index = Math.round(wheelEl.scrollTop / ITEM_HEIGHT);
+        const items = wheelEl.querySelectorAll('.wheel-item');
+        items.forEach((item, i) => {
+            if (i === index) item.classList.add('active');
+            else item.classList.remove('active');
+        });
+
+        const hIndex = Math.round(hourWheel.scrollTop / ITEM_HEIGHT);
+        const mIndex = Math.round(minuteWheel.scrollTop / ITEM_HEIGHT);
+        
+        const safeH = Math.max(0, Math.min(23, hIndex));
+        const safeM = Math.max(0, Math.min(11, mIndex));
+
+        const hStr = safeH.toString().padStart(2, '0');
+        const mStr = (safeM * 5).toString().padStart(2, '0');
+        timeDisplay.innerText = `${hStr}:${mStr}`;
+    }
+
+    hourWheel.addEventListener('scroll', () => handleScroll(hourWheel));
+    minuteWheel.addEventListener('scroll', () => handleScroll(minuteWheel));
+
+    function setWheelTime(hours, minutes) {
+        const m = Math.round(minutes / 5) * 5; 
+        const mIndex = m / 5;
+        setTimeout(() => {
+            hourWheel.scrollTop = hours * ITEM_HEIGHT;
+            minuteWheel.scrollTop = mIndex * ITEM_HEIGHT;
+        }, 50);
+    }
+
+    function parseTimeToMinutes(timeStr) {
+        if (!timeStr) return 9999; 
+        let t = timeStr.toLowerCase().trim();
+        if (t.includes('sáng')) return 6 * 60;       
+        if (t.includes('trưa')) return 11 * 60 + 30; 
+        if (t.includes('chiều')) return 14 * 60;     
+        if (t.includes('tối')) return 18 * 60;       
+        
+        const timeMatch = t.match(/(\d{1,2}):(\d{2})/);
+        if (timeMatch) return parseInt(timeMatch[1], 10) * 60 + parseInt(timeMatch[2], 10);
+        return 9999; 
+    }
+
     function init() {
-        const savedData = localStorage.getItem('vungTau_MobileApp_v3_EyeCare');
-        if (savedData) {
-            tasks = JSON.parse(savedData);
-        } else {
-            tasks = JSON.parse(JSON.stringify(defaultData));
-        }
+        const savedData = localStorage.getItem('vungTau_MobileApp_v5_Final');
+        if (savedData) tasks = JSON.parse(savedData);
+        else tasks = JSON.parse(JSON.stringify(defaultData));
         renderTasks();
+        
+        // Gợi ý ngày hôm nay cho ô nhập Đồng bộ Lịch
+        document.getElementById('tripStartDate').valueAsDate = new Date();
     }
 
     function saveData() {
-        localStorage.setItem('vungTau_MobileApp_v3_EyeCare', JSON.stringify(tasks));
+        localStorage.setItem('vungTau_MobileApp_v5_Final', JSON.stringify(tasks));
         updateProgress();
     }
 
-    // HÀM COPY ĐỊA CHỈ
     function copyAddress(text, event) {
-        event.stopPropagation(); // Ngăn không cho click lan ra ngoài
-        
-        // Gọi API copy của trình duyệt
+        event.stopPropagation(); 
         navigator.clipboard.writeText(text).then(() => {
-            // Hiện thông báo Toast
             const toast = document.getElementById("toast");
             toast.className = "toast show";
-            setTimeout(function(){ toast.className = toast.className.replace("show", ""); }, 2000);
-        }).catch(err => {
-            alert("Lỗi không thể sao chép: " + err);
-        });
+            setTimeout(() => { toast.className = toast.className.replace("show", ""); }, 2000);
+        }).catch(err => alert("Lỗi không thể sao chép: " + err));
     }
 
     function renderTasks() {
         const list = document.getElementById('scheduleList');
         list.innerHTML = ''; 
+        
+        if(tasks.length === 0) {
+            list.innerHTML = `
+                <div class="empty-state">
+                    <span>🏝️</span>
+                    Chưa có lịch trình nào.<br>Hãy bấm dấu + bên dưới để bắt đầu lên kế hoạch nhé!
+                </div>
+            `;
+            updateProgress();
+            return;
+        }
+
+        tasks.sort((a, b) => {
+            const dayA = parseInt(a.day.replace(/\D/g, '')) || 0;
+            const dayB = parseInt(b.day.replace(/\D/g, '')) || 0;
+            if (dayA !== dayB) return dayA - dayB;
+            return parseTimeToMinutes(a.time) - parseTimeToMinutes(b.time);
+        });
 
         const groupedTasks = tasks.reduce((acc, task) => {
             if (!acc[task.day]) acc[task.day] = [];
@@ -487,13 +632,17 @@
                 const taskDiv = document.createElement('div');
                 taskDiv.className = `task-item ${task.done ? 'completed' : ''}`;
                 
-                // Nút địa chỉ mới: Có hàm onclick gọi copyAddress
+                // ĐÃ FIX: ĐƯỜNG DẪN GOOGLE MAPS CHUẨN QUỐC TẾ
+                const mapsLink = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(task.address)}`;
+                
                 const addressHtml = task.address ? `
-                    <div class="task-address" onclick="copyAddress(\`${task.address}\`, event)" title="Chạm để Copy">
-                        <span class="address-text">📍 ${task.address}</span>
-                        <span class="copy-icon">📋 Copy</span>
-                    </div>
-                ` : '';
+                    <div class="address-group">
+                        <div class="task-address" onclick="copyAddress(\`${task.address}\`, event)">
+                            <span class="address-text">📍 ${task.address}</span>
+                            <span class="copy-icon">📋</span>
+                        </div>
+                        <a href="${mapsLink}" target="_blank" class="map-btn" onclick="event.stopPropagation();">🗺️ Maps</a>
+                    </div>` : '';
 
                 taskDiv.innerHTML = `
                     <div class="checkbox-custom" onclick="toggleTask(${task.id})"></div>
@@ -517,25 +666,24 @@
         const task = tasks.find(t => t.id === id);
         if(task) {
             if (task.done) {
-                const confirmUncheck = confirm("Bạn có chắc chắn mục này chưa hoàn thành không?");
-                if (!confirmUncheck) return; 
+                if (!confirm("Bạn có chắc chắn mục này chưa hoàn thành không?")) return; 
                 task.done = false;
             } else {
+                if (!confirm("Bạn có chắc chắn đã hoàn thành mục này không?")) return; 
                 task.done = true; 
             }
-            saveData();
-            renderTasks();
+            saveData(); renderTasks();
         }
     }
 
     function deleteTask(id) {
         if(confirm("Xóa lịch trình này nhé?")) {
             tasks = tasks.filter(t => t.id !== id);
-            saveData();
-            renderTasks();
+            saveData(); renderTasks();
         }
     }
 
+    // --- MODAL THÊM SỬA ---
     function openModal(id = null) {
         editingId = id;
         document.getElementById('taskModal').style.display = 'flex';
@@ -544,65 +692,124 @@
             document.getElementById('modalTitle').innerText = "Sửa lịch trình";
             const task = tasks.find(t => t.id === id);
             document.getElementById('inputDay').value = task.day;
-            document.getElementById('inputTime').value = task.time;
+            
+            let h = 12, m = 0;
+            if (task.time) {
+                const match = task.time.match(/(\d{1,2}):(\d{2})/);
+                if (match) {
+                    h = parseInt(match[1]); m = parseInt(match[2]);
+                }
+            }
+            setWheelTime(h, m);
             document.getElementById('inputDesc').value = task.desc;
             document.getElementById('inputAddress').value = task.address || ""; 
         } else {
             document.getElementById('modalTitle').innerText = "Thêm lịch trình";
             document.getElementById('inputDay').value = "Day 1"; 
-            document.getElementById('inputTime').value = "";
+            setWheelTime(12, 0); 
             document.getElementById('inputDesc').value = "";
             document.getElementById('inputAddress').value = "";
         }
     }
 
-    function closeModal() {
-        document.getElementById('taskModal').style.display = 'none';
-        editingId = null;
-    }
+    function closeModal() { document.getElementById('taskModal').style.display = 'none'; editingId = null; }
 
     function saveTask() {
         const day = document.getElementById('inputDay').value.trim();
-        const time = document.getElementById('inputTime').value.trim();
+        const time = timeDisplay.innerText;
         const desc = document.getElementById('inputDesc').value.trim();
         const address = document.getElementById('inputAddress').value.trim(); 
 
-        if(!day || !desc) {
-            alert("Ít nhất phải nhập Ngày và Làm gì nhé!");
-            return;
-        }
+        if(!day || !desc) { alert("Ít nhất phải nhập Ngày và Làm gì nhé!"); return; }
 
         if (editingId) {
             const task = tasks.find(t => t.id === editingId);
-            task.day = day;
-            task.time = time;
-            task.desc = desc;
-            task.address = address; 
+            task.day = day; task.time = time; task.desc = desc; task.address = address; 
         } else {
             const newId = tasks.length > 0 ? Math.max(...tasks.map(t => t.id)) + 1 : 1;
             tasks.push({ id: newId, day, time, desc, address, done: false });
         }
-
-        saveData();
-        renderTasks();
-        closeModal();
+        saveData(); renderTasks(); closeModal();
     }
 
     function updateProgress() {
         const total = tasks.length;
         const completed = tasks.filter(t => t.done).length;
         const percent = total === 0 ? 0 : Math.round((completed / total) * 100);
-
         document.getElementById('progressBar').style.width = percent + '%';
         document.getElementById('progressText').innerText = `${percent}% Hoàn thành`;
     }
 
     function resetProgress() {
-        if(confirm("Làm mới lại toàn bộ dữ liệu gốc?")) {
+        if(confirm("Làm mới lại toàn bộ dữ liệu gốc? Dữ liệu hiện tại của bạn sẽ bị xóa.")) {
             tasks = JSON.parse(JSON.stringify(defaultData));
-            saveData();
-            renderTasks();
+            saveData(); renderTasks();
         }
+    }
+
+    // --- TÍNH NĂNG XUẤT LỊCH (FILE .ICS CHO IPHONE) ---
+    function openSyncModal() { document.getElementById('syncModal').style.display = 'flex'; }
+    function closeSyncModal() { document.getElementById('syncModal').style.display = 'none'; }
+
+    function generateICS() {
+        const dateInput = document.getElementById('tripStartDate').value;
+        if (!dateInput) { alert("Vui lòng chọn ngày xuất phát nhé!"); return; }
+
+        const startDate = new Date(dateInput);
+        
+        // Chuẩn cấu trúc file iCalendar (.ics)
+        let icsContent = "BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:-//VungTauTrip//VN\n";
+
+        tasks.forEach(task => {
+            // Tính số ngày lệch so với Day 1 (VD: Day 2 lệch 1 ngày)
+            const dayMatch = task.day.match(/\d+/);
+            const dayOffset = dayMatch ? parseInt(dayMatch[0]) - 1 : 0;
+
+            // Lấy giờ phút
+            let h = 12, m = 0;
+            if (task.time) {
+                const timeMatch = task.time.match(/(\d{1,2}):(\d{2})/);
+                if (timeMatch) { h = parseInt(timeMatch[1]); m = parseInt(timeMatch[2]); }
+            }
+
+            // Tạo biến thời gian thực
+            const eventDate = new Date(startDate);
+            eventDate.setDate(eventDate.getDate() + dayOffset);
+            eventDate.setHours(h, m, 0);
+
+            // Mặc định cho mỗi sự kiện dài 1 tiếng
+            const endDate = new Date(eventDate);
+            endDate.setHours(endDate.getHours() + 1);
+
+            // Format đúng chuẩn ICS (YYYYMMDDTHHMMSS)
+            const formatICS = (date) => {
+                return date.getFullYear().toString() +
+                       (date.getMonth() + 1).toString().padStart(2, '0') +
+                       date.getDate().toString().padStart(2, '0') + "T" +
+                       date.getHours().toString().padStart(2, '0') +
+                       date.getMinutes().toString().padStart(2, '0') + "00";
+            };
+
+            icsContent += "BEGIN:VEVENT\n";
+            icsContent += `DTSTART:${formatICS(eventDate)}\n`;
+            icsContent += `DTEND:${formatICS(endDate)}\n`;
+            icsContent += `SUMMARY:${task.desc}\n`;
+            if (task.address) icsContent += `LOCATION:${task.address}\n`;
+            icsContent += "END:VEVENT\n";
+        });
+
+        icsContent += "END:VCALENDAR";
+
+        // Tự động tải file xuống
+        const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' });
+        const link = document.createElement('a');
+        link.href = window.URL.createObjectURL(blob);
+        link.setAttribute('download', 'LichTrinhVungTau.ics');
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+
+        closeSyncModal();
     }
 
     init();
